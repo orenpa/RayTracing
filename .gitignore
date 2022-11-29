@@ -1,5 +1,5 @@
 # Directories
 .idea/
 build/
-
+cmake-build-debug
 # Files
