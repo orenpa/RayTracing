@@ -80,7 +80,7 @@ void read_file() {
             color = set_coords(temp_coords);
             print_vec("color", color); //vec coordinates check
         }
-        // DIRECT LIGHT VEC
+            // DIRECT LIGHT VEC
         else if (line.substr(0, 2) == "d ") {
             std::string a(line.substr(2)); //take ambient coordinates
             temp_coords = split(a, " ");
@@ -88,7 +88,7 @@ void read_file() {
             direct = set_coords(temp_coords);
             print_vec("direct", direct); //vec coordinates check
         }
-        // SPOTLIGHT VEC
+            // SPOTLIGHT VEC
         else if (line.substr(0, 2) == "p ") {
             std::string a(line.substr(2)); //take ambient coordinates
             temp_coords = split(a, " ");
@@ -112,7 +112,7 @@ void read_file() {
             reflective = set_coords(temp_coords);
             print_vec("reflective", reflective); //vec coordinates check
         }
-        // REFLECTIVE OBJECT VEC
+            // REFLECTIVE OBJECT VEC
         else if (line.substr(0, 2) == "r ") {
             std::string a(line.substr(2)); //take ambient coordinates
             temp_coords = split(a, " ");
