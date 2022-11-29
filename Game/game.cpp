@@ -6,7 +6,7 @@
 
 
 //setting coords of vec
-glm::vec4 set_coords(std::vector<std::string> &coords){
+glm::vec4 set_coords(std::vector<std::string> &coords) {
     glm::vec4 temp;
     //stof - string to float
     temp.x = std::stof(coords[0]);
@@ -17,26 +17,23 @@ glm::vec4 set_coords(std::vector<std::string> &coords){
 }
 
 //for checking vec coordinates
-void print_vec(glm::vec4 &vec){
-    std::cout << vec.x << std::endl;
-    std::cout << vec.y << std::endl;
-    std::cout << vec.z << std::endl;
-    std::cout << vec.x << std::endl;
+void print_vec(std::string type, glm::vec4 &vec) {
+    std::cout << type << " " << vec.x << " " << vec.y << " " << vec.z << " " << vec.w << std::endl;
 }
 
 // for string delimiter
-std::vector<std::string> split (std::string s, std::string delimiter) {
+std::vector<std::string> split(std::string s, std::string delimiter) {
     size_t pos_start = 0, pos_end, delim_len = delimiter.length();
     std::string token;
     std::vector<std::string> res;
 
-    while ((pos_end = s.find (delimiter, pos_start)) != std::string::npos) {
-        token = s.substr (pos_start, pos_end - pos_start);
+    while ((pos_end = s.find(delimiter, pos_start)) != std::string::npos) {
+        token = s.substr(pos_start, pos_end - pos_start);
         pos_start = pos_end + delim_len;
-        res.push_back (token);
+        res.push_back(token);
     }
 
-    res.push_back (s.substr (pos_start));
+    res.push_back(s.substr(pos_start));
     return res;
 }
 
@@ -49,16 +46,90 @@ void read_file() {
         exit(1);
     }
     std::string line;
-    std::getline(in, line);
     std::vector<std::string> temp_coords;
-    if (line.substr(0, 2) == "e ") {
-        std::string e(line.substr(2)); //take eye coordinates
-        temp_coords = split(e, " ");
-        glm::vec4 eye;
-        eye = set_coords(temp_coords);
-//        print_vec(eye); //vec coordinates check
+    while (std::getline(in, line)) { //while didn't reach EOF
+        // EYE VEC
+        if (line.substr(0, 2) == "e ") {
+            std::string e(line.substr(2)); //take eye coordinates
+            temp_coords = split(e, " ");
+            glm::vec4 eye;
+            eye = set_coords(temp_coords);
+            print_vec("eye", eye); //vec coordinates check
+        }
+            // AMBIENT VEC
+        else if (line.substr(0, 2) == "a ") {
+            std::string a(line.substr(2)); //take ambient coordinates
+            temp_coords = split(a, " ");
+            glm::vec4 ambient;
+            ambient = set_coords(temp_coords);
+            print_vec("ambient", ambient); //vec coordinates check
+        }
+            // OBJECT VEC
+        else if (line.substr(0, 2) == "o ") {
+            std::string a(line.substr(2)); //take ambient coordinates
+            temp_coords = split(a, " ");
+            glm::vec4 object;
+            object = set_coords(temp_coords);
+            print_vec("object", object); //vec coordinates check
+        }
+            // COLOR OF OBJECT VEC
+        else if (line.substr(0, 2) == "c ") {
+            std::string a(line.substr(2)); //take ambient coordinates
+            temp_coords = split(a, " ");
+            glm::vec4 color;
+            color = set_coords(temp_coords);
+            print_vec("color", color); //vec coordinates check
+        }
+        // DIRECT LIGHT VEC
+        else if (line.substr(0, 2) == "d ") {
+            std::string a(line.substr(2)); //take ambient coordinates
+            temp_coords = split(a, " ");
+            glm::vec4 direct;
+            direct = set_coords(temp_coords);
+            print_vec("direct", direct); //vec coordinates check
+        }
+        // SPOTLIGHT VEC
+        else if (line.substr(0, 2) == "p ") {
+            std::string a(line.substr(2)); //take ambient coordinates
+            temp_coords = split(a, " ");
+            glm::vec4 spotlight;
+            spotlight = set_coords(temp_coords);
+            print_vec("spotlight", spotlight); //vec coordinates check
+        }
+            // LIGHT INTENSITY VEC
+        else if (line.substr(0, 2) == "i ") {
+            std::string a(line.substr(2)); //take ambient coordinates
+            temp_coords = split(a, " ");
+            glm::vec4 intensity;
+            intensity = set_coords(temp_coords);
+            print_vec("intensity", intensity); //vec coordinates check
+        }
+            // REFLECTIVE OBJECT VEC
+        else if (line.substr(0, 2) == "r ") {
+            std::string a(line.substr(2)); //take ambient coordinates
+            temp_coords = split(a, " ");
+            glm::vec4 reflective;
+            reflective = set_coords(temp_coords);
+            print_vec("reflective", reflective); //vec coordinates check
+        }
+        // REFLECTIVE OBJECT VEC
+        else if (line.substr(0, 2) == "r ") {
+            std::string a(line.substr(2)); //take ambient coordinates
+            temp_coords = split(a, " ");
+            glm::vec4 reflective;
+            reflective = set_coords(temp_coords);
+            print_vec("reflective", reflective); //vec coordinates check
+        }
+            // TRANSPARENT OBJECT VEC
+        else if (line.substr(0, 2) == "t ") {
+            std::string a(line.substr(2)); //take ambient coordinates
+            temp_coords = split(a, " ");
+            glm::vec4 transparent;
+            transparent = set_coords(temp_coords);
+            print_vec("transparent", transparent); //vec coordinates check
         }
 
+    }
     in.close();
 }
 
