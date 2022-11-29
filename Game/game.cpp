@@ -47,7 +47,6 @@ void read_file() {
     }
     std::string line;
     std::getline(in, line);
-    float x, y, z, w;
     std::vector<std::string> temp_coords;
     if (line.substr(0, 2) == "e ") {
         std::string e(line.substr(2)); //take eye coordinates
