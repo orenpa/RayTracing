@@ -8,6 +8,7 @@
 //setting coords of vec
 glm::vec4 set_coords(std::vector<std::string> &coords){
     glm::vec4 temp;
+    //stof - string to float
     temp.x = std::stof(coords[0]);
     temp.y = std::stof(coords[1]);
     temp.z = std::stof(coords[2]);
