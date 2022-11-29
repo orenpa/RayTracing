@@ -4,7 +4,8 @@
 #include <fstream>
 #include <sstream>
 
-// for string delimiter
+
+//setting coords of vec
 glm::vec4 set_coords(std::vector<std::string> &coords){
     glm::vec4 temp;
     temp.x = std::stof(coords[0]);
@@ -14,6 +15,7 @@ glm::vec4 set_coords(std::vector<std::string> &coords){
     return temp;
 }
 
+//for checking vec coordinates
 void print_vec(glm::vec4 &vec){
     std::cout << vec.x << std::endl;
     std::cout << vec.y << std::endl;
@@ -21,6 +23,7 @@ void print_vec(glm::vec4 &vec){
     std::cout << vec.x << std::endl;
 }
 
+// for string delimiter
 std::vector<std::string> split (std::string s, std::string delimiter) {
     size_t pos_start = 0, pos_end, delim_len = delimiter.length();
     std::string token;
@@ -36,10 +39,9 @@ std::vector<std::string> split (std::string s, std::string delimiter) {
     return res;
 }
 
+//reading specified file
 void read_file() {
     std::ifstream in("../res/scene.txt", std::ios::in);
-    int loopcounter;
-//    text_file->open("../res/scene.txt");
 
     if (!in) {
         printf("\ncan't open input file\n");
