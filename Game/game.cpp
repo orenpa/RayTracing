@@ -4,6 +4,15 @@
 #include <fstream>
 #include <sstream>
 
+static std::vector<glm::vec4> spheres;
+static std::vector<glm::vec4> planes;
+static std::vector<glm::vec4> ambient_color;
+static std::vector<glm::vec4> object_colors;
+static std::vector<glm::vec4> light_intensity;
+static std::vector<glm::vec4> direct_lights;
+static std::vector<glm::vec4> spotlights;
+static std::vector<glm::vec4> eye_camera;
+
 
 //setting coords of vec
 glm::vec4 set_coords(std::vector<std::string> &coords) {
@@ -47,6 +56,8 @@ void read_file() {
     }
     std::string line;
     std::vector<std::string> temp_coords;
+
+
     while (std::getline(in, line)) { //while didn't reach EOF
         // EYE VEC
         if (line.substr(0, 2) == "e ") {
@@ -54,6 +65,7 @@ void read_file() {
             temp_coords = split(e, " ");
             glm::vec4 eye;
             eye = set_coords(temp_coords);
+            eye_camera.push_back(eye);
             print_vec("eye", eye); //vec coordinates check
         }
             // AMBIENT VEC
@@ -62,6 +74,7 @@ void read_file() {
             temp_coords = split(a, " ");
             glm::vec4 ambient;
             ambient = set_coords(temp_coords);
+            ambient_color.push_back(ambient);
             print_vec("ambient", ambient); //vec coordinates check
         }
             // OBJECT VEC
@@ -70,6 +83,10 @@ void read_file() {
             temp_coords = split(a, " ");
             glm::vec4 object;
             object = set_coords(temp_coords);
+            if (object.w <= 0) //if it's a plane
+                planes.push_back(object);
+            else // it's a sphere
+                spheres.push_back(object);
             print_vec("object", object); //vec coordinates check
         }
             // COLOR OF OBJECT VEC
@@ -78,6 +95,7 @@ void read_file() {
             temp_coords = split(a, " ");
             glm::vec4 color;
             color = set_coords(temp_coords);
+            object_colors.push_back(color);
             print_vec("color", color); //vec coordinates check
         }
             // DIRECT LIGHT VEC
@@ -86,6 +104,7 @@ void read_file() {
             temp_coords = split(a, " ");
             glm::vec4 direct;
             direct = set_coords(temp_coords);
+            direct_lights.push_back(direct);
             print_vec("direct", direct); //vec coordinates check
         }
             // SPOTLIGHT VEC
@@ -94,6 +113,7 @@ void read_file() {
             temp_coords = split(a, " ");
             glm::vec4 spotlight;
             spotlight = set_coords(temp_coords);
+            spotlights.push_back(spotlight);
             print_vec("spotlight", spotlight); //vec coordinates check
         }
             // LIGHT INTENSITY VEC
@@ -102,6 +122,7 @@ void read_file() {
             temp_coords = split(a, " ");
             glm::vec4 intensity;
             intensity = set_coords(temp_coords);
+            light_intensity.push_back(intensity);
             print_vec("intensity", intensity); //vec coordinates check
         }
             // REFLECTIVE OBJECT VEC
@@ -110,14 +131,10 @@ void read_file() {
             temp_coords = split(a, " ");
             glm::vec4 reflective;
             reflective = set_coords(temp_coords);
-            print_vec("reflective", reflective); //vec coordinates check
-        }
-            // REFLECTIVE OBJECT VEC
-        else if (line.substr(0, 2) == "r ") {
-            std::string a(line.substr(2)); //take ambient coordinates
-            temp_coords = split(a, " ");
-            glm::vec4 reflective;
-            reflective = set_coords(temp_coords);
+            if (reflective.w <= 0) //if it's a plane
+                planes.push_back(reflective);
+            else // it's a sphere
+                spheres.push_back(reflective);
             print_vec("reflective", reflective); //vec coordinates check
         }
             // TRANSPARENT OBJECT VEC
@@ -126,6 +143,10 @@ void read_file() {
             temp_coords = split(a, " ");
             glm::vec4 transparent;
             transparent = set_coords(temp_coords);
+            if (transparent.w <= 0) //if it's a plane
+                planes.push_back(transparent);
+            else // it's a sphere
+                spheres.push_back(transparent);
             print_vec("transparent", transparent); //vec coordinates check
         }
 
@@ -150,6 +171,7 @@ Game::Game(float angle, float relationWH, float near1, float far1) : Scene(angle
 
 void Game::Init() {
     read_file();
+//    std::cout << spheres.size() << std::endl; //checking count of spheres = V
     AddShader("../res/shaders/pickingShader");
     AddShader("../res/shaders/basicShader");
 
