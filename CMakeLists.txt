@@ -28,7 +28,7 @@ add_library(Display ${DISPLAY})
 add_library(Engine ${ENGINE})
 
 
-add_executable(${PROJ_NAME} ${GAME})
+add_executable(${PROJ_NAME} ${GAME} Game/ray.h)
 
 target_link_libraries(${PROJ_NAME} Engine Display glfw glad)
 
