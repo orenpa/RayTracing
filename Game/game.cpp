@@ -1,9 +1,12 @@
 #include "game.h"
+#include "ray.h"
 #include <iostream>
 #include <glm/gtc/matrix_transform.hpp>
 #include <fstream>
 #include <sstream>
 
+#define color_size_bytes 4
+#define to_index(i, j) i * image_width * color_size_bytes + j * color_size_bytes
 static std::vector<glm::vec4> spheres;
 static std::vector<glm::vec4> planes;
 static std::vector<glm::vec4> ambient_color;
@@ -154,6 +157,40 @@ void read_file() {
     in.close();
 }
 
+
+/*  ************************************************** end parser **************************************************** */
+
+
+glm::vec4 ray_color(const ray &r) {
+    glm::vec4 unit_direction = glm::normalize(r.direction());
+    float t = 0.5 * (unit_direction.y + 1.0);
+    return static_cast<float>(1.0 - t) * glm::vec4(1.0, 1.0, 1.0, 0) +
+           static_cast<float>(t) * glm::vec4(0.5, 0.7, 1.0, 0);
+}
+
+void Game::calc_color_data(float viewport_width, float viewport_height, int image_width, int image_height) {
+    float focal_length = 1.0f; //im not sure what this do
+    glm::vec4 horizontal = glm::vec4(viewport_width, 0, 0, 0);
+    glm::vec4 vertical = glm::vec4(0, viewport_height, 0, 0);
+    glm::vec4 lower_left_corner =
+            eye_camera[0] - horizontal / 2.0f - vertical / 2.0f - glm::vec4(0, 0, focal_length, 0);
+    unsigned char *data = new unsigned char [image_width * image_height * color_size_bytes];
+    for (int i = image_height - 1; i >= 0; --i) {
+        for (int j = 0; i < image_width; ++j) {
+            float u = float(i) / (image_width - 1);
+            float v = float(j) / (image_height - 1);
+            ray r(eye_camera[0], lower_left_corner + u * horizontal + v * vertical - eye_camera[0]);
+            glm::vec4 pixel_color = ray_color(r);
+            data[to_index(i, j)] = pixel_color.x;
+            data[to_index(i,j+1)] = pixel_color.y;
+            data[to_index(i,j+2)] = pixel_color.z;
+            data[to_index(i,j+3)] = pixel_color.w;
+        }
+    }
+
+    AddTexture(image_width, image_height, data);
+}
+
 static void printMat(const glm::mat4 mat) {
     std::cout << " matrix:" << std::endl;
     for (int i = 0; i < 4; i++) {
@@ -174,8 +211,9 @@ void Game::Init() {
 //    std::cout << spheres.size() << std::endl; //checking count of spheres = V
     AddShader("../res/shaders/pickingShader");
     AddShader("../res/shaders/basicShader");
+    calc_color_data(2.0,2.0,512,512);
 
-    AddTexture("../res/textures/box0.bmp", false);
+//    AddTexture("../res/textures/box0.bmp", false);
 
     AddShape(Plane, -1, TRIANGLES);
 

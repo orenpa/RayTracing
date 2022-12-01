@@ -14,5 +14,7 @@ public:
 	void WhenTranslate();
 	void Motion();
 	~Game(void);
+
+    void calc_color_data(float viewport_width, float viewport_heigt, int image_width, int image_height);
 };
 
