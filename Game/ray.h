@@ -6,25 +6,25 @@
 #define GAME_RAY_H
 
 #include "glfw/deps/linmath.h"
-#include "glm/vec4.hpp"
+#include "glm/vec3.hpp"
 
 class ray {
 public:
     ray() {}
-    ray(const glm::vec4& origin, const glm::vec4& direction)
+    ray(const glm::vec3& origin, const glm::vec3& direction)
             : orig(origin), dir(direction)
     {}
 
-    glm::vec4 origin() const  { return orig; }
-    glm::vec4 direction() const { return dir; }
+    glm::vec3 origin() const  { return orig; }
+    glm::vec3 direction() const { return dir; }
 
-    glm::vec4 at(float t) const {
+    glm::vec3 at(float t) const {
         return orig + t*dir;
     }
 
 public:
-    glm::vec4 orig;
-    glm::vec4 dir;
+    glm::vec3 orig;
+    glm::vec3 dir;
 };
 
 #endif //GAME_RAY_H
