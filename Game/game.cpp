@@ -177,14 +177,14 @@ void Game::calc_color_data(float viewport_width, float viewport_height, int imag
             eye - horizontal / 2.0f - vertical / 2.0f - glm::vec3(0, 0, focal_length);
     unsigned char *data = new unsigned char [image_width * image_height * color_size_bytes];
     for (int i = image_height - 1; i >= 0; --i) {
-        for (int j = 0; i < image_width; ++j) {
+        for (int j = 0; j < image_width; ++j) {
             float u = float(i) / (image_width - 1);
             float v = float(j) / (image_height - 1);
             ray r(eye, lower_left_corner + u * horizontal + v * vertical - eye);
             glm::vec3 pixel_color = ray_color(r);
             data[to_index(i, j)] = pixel_color.x;
-            data[to_index(i,j+1)] = pixel_color.y;
-            data[to_index(i,j+2)] = pixel_color.z;
+//            data[to_index(i,j+1)] = pixel_color.y;
+//            data[to_index(i,j+2)] = pixel_color.z;
         }
     }
 
@@ -211,7 +211,7 @@ void Game::Init() {
 //    std::cout << spheres.size() << std::endl; //checking count of spheres = V
     AddShader("../res/shaders/pickingShader");
     AddShader("../res/shaders/basicShader");
-    calc_color_data(2.0,2.0,512,512);
+    calc_color_data((16.0f/9.0f)*2.0f,2.0,512,512);
 
 //    AddTexture("../res/textures/box0.bmp", false);
 
