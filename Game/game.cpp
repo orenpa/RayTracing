@@ -161,30 +161,30 @@ void read_file() {
 /*  ************************************************** end parser **************************************************** */
 
 
-glm::vec4 ray_color(const ray &r) {
-    glm::vec4 unit_direction = glm::normalize(r.direction());
+glm::vec3 ray_color(const ray &r) {
+    glm::vec3 unit_direction = glm::normalize(r.direction());
     float t = 0.5 * (unit_direction.y + 1.0);
-    return static_cast<float>(1.0 - t) * glm::vec4(1.0, 1.0, 1.0, 0) +
-           static_cast<float>(t) * glm::vec4(0.5, 0.7, 1.0, 0);
+    return static_cast<float>(1.0 - t) * glm::vec3(1.0, 1.0, 1.0) +
+           static_cast<float>(t) * glm::vec3(0.5, 0.7, 1.0);
 }
 
 void Game::calc_color_data(float viewport_width, float viewport_height, int image_width, int image_height) {
     float focal_length = 1.0f; //im not sure what this do
-    glm::vec4 horizontal = glm::vec4(viewport_width, 0, 0, 0);
-    glm::vec4 vertical = glm::vec4(0, viewport_height, 0, 0);
-    glm::vec4 lower_left_corner =
-            eye_camera[0] - horizontal / 2.0f - vertical / 2.0f - glm::vec4(0, 0, focal_length, 0);
+    glm::vec3 eye = glm::vec3 (eye_camera[0].x,eye_camera[0].y,eye_camera[0].z);
+    glm::vec3 horizontal = glm::vec3(viewport_width, 0, 0 );
+    glm::vec3 vertical = glm::vec3(0, viewport_height, 0);
+    glm::vec3 lower_left_corner =
+            eye - horizontal / 2.0f - vertical / 2.0f - glm::vec3(0, 0, focal_length);
     unsigned char *data = new unsigned char [image_width * image_height * color_size_bytes];
     for (int i = image_height - 1; i >= 0; --i) {
         for (int j = 0; i < image_width; ++j) {
             float u = float(i) / (image_width - 1);
             float v = float(j) / (image_height - 1);
-            ray r(eye_camera[0], lower_left_corner + u * horizontal + v * vertical - eye_camera[0]);
-            glm::vec4 pixel_color = ray_color(r);
+            ray r(eye, lower_left_corner + u * horizontal + v * vertical - eye);
+            glm::vec3 pixel_color = ray_color(r);
             data[to_index(i, j)] = pixel_color.x;
             data[to_index(i,j+1)] = pixel_color.y;
             data[to_index(i,j+2)] = pixel_color.z;
-            data[to_index(i,j+3)] = pixel_color.w;
         }
     }
 
