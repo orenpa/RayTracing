@@ -17,13 +17,13 @@ static std::vector<glm::vec4> direct_lights;
 static std::vector<glm::vec4> spotlights;
 static std::vector<glm::vec4> eye_camera;
 
-static void WriteToTxt(unsigned char* data, int image_width,int image_height, std::string name){
+static void WriteToTxt(unsigned char *data, int image_width, int image_height, std::string name) {
     std::ofstream txt_file;
     txt_file.open(name, std::ofstream::out);
     if (txt_file.is_open()) {
         for (int i = 0; i < image_height; i++) {
             for (int j = 0; j < image_width; j++) {
-                txt_file << (int) data[to_index(i,j)] << ",";
+                txt_file << (int) data[to_index(i, j)] << ",";
             }
             txt_file << '\n';
         }
@@ -48,8 +48,10 @@ glm::vec4 set_coords(std::vector<std::string> &coords) {
 void print_vec4(std::string type, glm::vec4 &vec) {
     std::cout << type << " " << vec.x << " " << vec.y << " " << vec.z << " " << vec.w << std::endl;
 }
+
 void print_vec3(std::string type, glm::vec3 &vec) {
-    std::cout << type << " " << static_cast<int>(255.999*vec.x) << " " << static_cast<int>(255.999*vec.y) << " " << static_cast<int>(255.999*vec.z) << std::endl;
+    std::cout << type << " " << static_cast<int>(255.999 * vec.x) << " " << static_cast<int>(255.999 * vec.y) << " "
+              << static_cast<int>(255.999 * vec.z) << std::endl;
 }
 
 // for string delimiter
@@ -183,33 +185,48 @@ void read_file() {
 glm::vec3 ray_color(const ray &r) {
     glm::vec3 unit_direction = glm::normalize(r.direction());
     float t = 0.5f * (unit_direction.y + 1.0f);
-    return static_cast<float>(1.0 - t) * glm::vec3(1.0, 1.0, 1.0) +
-           static_cast<float>(t) * glm::vec3(0.5, 0.7, 1.0);
+    float diffuse = 1.0f;
+    float specular = 0.7f;
+    return (1.0f - t) * glm::vec3(1.0, 1.0, 1.0) +
+    t * glm::vec3(0.5, 0.7, 1.0);
+
+
 }
 
 void Game::calc_color_data(float viewport_width, float viewport_height, int image_width, int image_height) {
-    float focal_length = 1.0f; //im not sure what this do
-    glm::vec3 eye = glm::vec3 (eye_camera[0].x,eye_camera[0].y,eye_camera[0].z);
-    glm::vec3 horizontal = glm::vec3(viewport_width, 0, 0 );
-    glm::vec3 vertical = glm::vec3(0, viewport_height, 0);
+    float color_mat[image_width][image_height][3];
+    glm::vec3 eye = glm::vec3(eye_camera[0].x, eye_camera[0].y, eye_camera[0].z); //origin
+    glm::vec3 horizontal = glm::vec3(viewport_width, 0, 0); // X axis
+    glm::vec3 vertical = glm::vec3(0, viewport_height, 0); // Y axis
+    glm::vec3 focal_length = glm::vec3 (0,0,1.0f); // distance from camera to screen
     glm::vec3 lower_left_corner =
-            eye - horizontal / 2.0f - vertical / 2.0f - glm::vec3(0, 0, focal_length);
-    unsigned char *data = new unsigned char [image_width * image_height * color_size_bytes];
-    for (int i = image_height - 1; i >= 0; --i) {
-        for (int j = 0; j < image_width; ++j) {
-            float u = float(j) / (float)(image_width - 1);
-            float v = float(i) / (float)(image_height - 1);
+            eye - horizontal / 2.0f - vertical / 2.0f - focal_length;
+    unsigned char *data = new unsigned char[image_width * image_height * color_size_bytes];
+    for (int i = image_height -1 ; i >=0 ; i--) {
+        for (int j = 0; j < image_width; j++) {
+            float u = float(j) / (float) (image_width - 1);
+            float v = float(i) / (float) (image_height - 1);
             ray r(eye, lower_left_corner + u * horizontal + v * vertical - eye);
             glm::vec3 pixel_color = ray_color(r);
 //            print_vec3("color", pixel_color);
-            data[to_index(i,j)] = static_cast<int>(255.999*pixel_color.x);
-            data[to_index(i,j+1)] = static_cast<int>(255.999*pixel_color.y);
-            data[to_index(i,j+2)] = static_cast<int>(255.999*pixel_color.z);
-            data[to_index(i,j+3)] = 255;
-
+            color_mat[i][j][0] = pixel_color.x;
+            color_mat[i][j][1] = pixel_color.y;
+            color_mat[i][j][2] = pixel_color.z;
         }
     }
-    WriteToTxt(data,image_width,image_height,"data");
+    int index = 0;
+    for (int i = 0; i < image_height; i++) {
+        for (int j = 0; j < image_width; j++) {
+            data[index] = static_cast<int>(color_mat[i][j][0]*255.999);
+            data[index+1] = static_cast<int>(color_mat[i][j][1]*255.999);
+            data[index+2] = static_cast<int>(color_mat[i][j][2]*255.999);
+            data[index+3] = static_cast<int>(255);
+            index+=4;
+        }
+
+    }
+
+//    WriteToTxt(data,image_width,image_height,"data");
     AddTexture(image_width, image_height, data);
 }
 
@@ -233,7 +250,7 @@ void Game::Init() {
 //    std::cout << spheres.size() << std::endl; //checking count of spheres = V
     AddShader("../res/shaders/pickingShader");
     AddShader("../res/shaders/basicShader");
-    calc_color_data(2.0,2.0,512,512);
+    calc_color_data(2.0, 2.0 ,256,256 );
 
 //    AddTexture("../res/textures/box0.bmp", false);
 
