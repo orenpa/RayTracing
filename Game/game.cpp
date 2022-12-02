@@ -1,9 +1,11 @@
 #include "game.h"
 #include "ray.h"
+#include "sphere.h"
 #include <iostream>
 #include <glm/gtc/matrix_transform.hpp>
 #include <fstream>
 #include <sstream>
+#include "hittable_list.h"
 
 using namespace glm;
 #define color_size_bytes 4
@@ -17,6 +19,9 @@ static std::vector<glm::vec4> light_intensity;
 static std::vector<glm::vec4> direct_lights;
 static std::vector<glm::vec4> spotlights;
 static std::vector<glm::vec4> eye_camera;
+
+const float infinity = std::numeric_limits<float>::infinity();
+const double pi = 3.1415926535897932385;
 
 static void WriteToTxt(unsigned char *data, int image_width, int image_height, std::string name) {
     std::ofstream txt_file;
@@ -182,32 +187,19 @@ void read_file() {
 
 /*  ************************************************** end parser **************************************************** */
 
-float hit_sphere(const glm::vec3 center, float radius, const ray &r) {
-    glm::vec3 sphere_center = r.origin() - center;
-    float a = glm::dot(r.direction(), r.direction());
-    float half_b = glm::dot(sphere_center, r.direction());
-    float c = glm::dot(sphere_center, sphere_center) - radius * radius;
-    float discriminant = half_b * half_b - a * c;
-    if (discriminant < 0)
-        return -1.0f;
-    else {
-        return (-half_b - sqrt(discriminant)) / a;
-    }
+inline float degrees_to_radians(float degrees) {
+    return degrees * pi / 180.0;
 }
 
-glm::vec3 ray_color(const ray &r) {
-    float t = hit_sphere(glm::vec3(0, 0, -1), 0.5f, r);
-    if (t > 0.0f) {
-        glm::vec3 normal = glm::normalize(r.at(t) - glm::vec3(0, 0, -1));
-        return 0.5f * glm::vec3((normal.x) + 1, (normal.y) + 1, (normal.z) + 1);
+glm::vec3 ray_color(const ray& r, const hittable& world) {
+    hit_record rec;
+    if (world.hit(r, 0, infinity, rec)) {
+        return 0.5f * (rec.normal + glm::vec3(1,1,1));
     }
     glm::vec3 unit_direction = glm::normalize(r.direction());
-    t = 0.5f * (unit_direction.y + 1.0f);
-    return ((1.0f - t) * glm::vec3(1.0, 1.0, 1.0) +
-            t * glm::vec3(0.5, 0.7, 1.0));
+    float t = 0.5 * (unit_direction.y + 1.0);
+    return ((1.0f - t) * glm::vec3(1.0, 1.0, 1.0) +t * glm::vec3(0.5, 0.7, 1.0));
 
-//    float diffuse = 1.0f;
-//    float specular = 0.7f;
 }
 
 void Game::calc_color_data(float viewport_width, float viewport_height, int image_width, int image_height) {
@@ -219,13 +211,16 @@ void Game::calc_color_data(float viewport_width, float viewport_height, int imag
     glm::vec3 focal_length = glm::vec3(0, 0, 1.0f); // distance from camera to screen
     glm::vec3 lower_left_corner =
             eye - horizontal / 2.0f - vertical / 2.0f - focal_length;
+    hittable_list world;
+    world.add(make_shared<sphere>(glm::vec3(0,0,-1), 0.5));
+    world.add(make_shared<sphere>(glm::vec3(0,-100.5,-1), 100));
     unsigned char *data = new unsigned char[image_width * image_height * color_size_bytes];
     for (int i = image_height - 1; i >= 0; i--) {
         for (int j = 0; j < image_width; j++) {
             float u = float(j) / (float) (image_width - 1);
             float v = float(i) / (float) (image_height - 1);
             ray r(eye, lower_left_corner + u * horizontal + v * vertical - eye);
-            glm::vec3 pixel_color = ray_color(r);
+            glm::vec3 pixel_color = ray_color(r, world);
 //            print_vec3("color", pixel_color);
             color_mat[i][j][0] = pixel_color.x;
             color_mat[i][j][1] = pixel_color.y;
