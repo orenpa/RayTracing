@@ -5,12 +5,16 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <fstream>
 #include <sstream>
+#include <cstdlib>
 #include "hittable_list.h"
+#include "light.h"
+#include "directional_light.h"
 
 using namespace glm;
 #define color_size_bytes 4
 #define to_index(i, j) i * image_width * color_size_bytes + j * color_size_bytes
-#define set_val(ARR, INDEX, vec) ARR[INDEX] = vec.x; ARR[INDEX+1] = vec.y; ARR[INDEX+2] = vec.z; ARR[INDEX+3] = 255;
+#define MAX_DEPTH 5
+
 static std::vector<glm::vec4> spheres;
 static std::vector<glm::vec4> planes;
 static std::vector<glm::vec4> ambient_color;
@@ -19,7 +23,7 @@ static std::vector<glm::vec4> light_intensity;
 static std::vector<glm::vec4> direct_lights;
 static std::vector<glm::vec4> spotlights;
 static std::vector<glm::vec4> eye_camera;
-
+static glm::vec3 Ia = glm::vec3(1.6f,1.6f,1.6f); // ambient
 const float infinity = std::numeric_limits<float>::infinity();
 const double pi = 3.1415926535897932385;
 
@@ -191,48 +195,63 @@ inline float degrees_to_radians(float degrees) {
     return degrees * pi / 180.0;
 }
 
-glm::vec3 ray_color(const ray& r, const hittable& world) {
+glm::vec3 ray_color(const ray& r, const hittable& world, directional_light light_source, int depth) {
+    if (depth == 0)
+        return glm::vec3(0,0,0);
     hit_record rec;
     if (world.hit(r, 0, infinity, rec)) {
-        return 0.5f * (rec.normal + glm::vec3(1,1,1));
+        return (light_source.get_illumination(r, rec) + Ia * Ka) * rec.mat.base_color +
+                                        ray_color(ray(rec.point, 2.0f * (rec.normal * r.dir) * rec.normal - r.dir), world, light_source, depth - 1) * rec.mat.reflective;
     }
-    glm::vec3 unit_direction = glm::normalize(r.direction());
-    float t = 0.5 * (unit_direction.y + 1.0);
-    return ((1.0f - t) * glm::vec3(1.0, 1.0, 1.0) +t * glm::vec3(0.5, 0.7, 1.0));
-
+    return glm::vec3(0,0,0); //infinity plane
 }
 
+float get_random(){
+    return (float)rand() /(RAND_MAX + 1);
+}
+
+float my_clamp(float x){
+    return  glm::clamp(x, 0.0f, 255.0f);
+}
+
+const int sample_per_pixel = 20;
 void Game::calc_color_data(float viewport_width, float viewport_height, int image_width, int image_height) {
     float color_mat[image_width][image_height][3];
     glm::vec3 eye = glm::vec3(eye_camera[0].x, eye_camera[0].y, eye_camera[0].z); //origin
-//    glm::vec3 eye = glm::vec3(0, 0, 4); //origin
     glm::vec3 horizontal = glm::vec3(viewport_width, 0, 0); // X axis
     glm::vec3 vertical = glm::vec3(0, viewport_height, 0); // Y axis
-    glm::vec3 focal_length = glm::vec3(0, 0, 1.0f); // distance from camera to screen
+    glm::vec3 focal_length = glm::vec3(0, 0, 4.0f); // distance from camera to screen
     glm::vec3 lower_left_corner =
             eye - horizontal / 2.0f - vertical / 2.0f - focal_length;
+    directional_light sun = directional_light(glm::vec3(1,-0.5,-0.2), glm::vec3(1.0f,1.0f,1.0f));
     hittable_list world;
     world.add(make_shared<sphere>(glm::vec3(0,0,-1), 0.5));
-    world.add(make_shared<sphere>(glm::vec3(0,-100.5,-1), 100));
+    world.add(make_shared<sphere>(glm::vec3(0.5,-0.25,0), 0.25, material(glm::vec3(204,64,50), 0.0f)));
+    world.add(make_shared<sphere>(glm::vec3(0,-100.5,-1), 100, material(glm::vec3(50,50,50), 0.0f)));
     unsigned char *data = new unsigned char[image_width * image_height * color_size_bytes];
-    for (int i = image_height - 1; i >= 0; i--) {
-        for (int j = 0; j < image_width; j++) {
-            float u = float(j) / (float) (image_width - 1);
-            float v = float(i) / (float) (image_height - 1);
-            ray r(eye, lower_left_corner + u * horizontal + v * vertical - eye);
-            glm::vec3 pixel_color = ray_color(r, world);
-//            print_vec3("color", pixel_color);
-            color_mat[i][j][0] = pixel_color.x;
-            color_mat[i][j][1] = pixel_color.y;
-            color_mat[i][j][2] = pixel_color.z;
+    for (int y = 0; y < image_height; y++) {
+        for (int x = 0; x < image_width; x++) {
+            glm::vec3 pixel_color = glm::vec3(0,0,0);
+            for (int s = 0; s < sample_per_pixel; s++) {
+                float u = (float(x) + get_random()) / (float) (image_width - 1);
+                float v = (float(y)+ get_random()) / (float) (image_height - 1);
+                glm::vec3 xDir = glm::vec3(2 * u, 0, 0);
+                glm::vec3 yDir = glm::vec3(0, 2 * v, 0);
+                ray r(eye, lower_left_corner + xDir + yDir - eye);
+                pixel_color += ray_color(r, world, sun, MAX_DEPTH);
+            }
+            pixel_color = pixel_color / (float)sample_per_pixel;
+            color_mat[y][x][0] = my_clamp(pixel_color.x);
+            color_mat[y][x][1] = my_clamp(pixel_color.y);
+            color_mat[y][x][2] = my_clamp(pixel_color.z);
         }
     }
     int index = 0;
     for (int i = 0; i < image_height; i++) {
         for (int j = 0; j < image_width; j++) {
-            data[index] = static_cast<int>(color_mat[i][j][0] * 255.999);
-            data[index + 1] = static_cast<int>(color_mat[i][j][1] * 255.999);
-            data[index + 2] = static_cast<int>(color_mat[i][j][2] * 255.999);
+            data[index] = static_cast<int>(color_mat[image_height - i - 1][j][0]);
+            data[index + 1] = static_cast<int>(color_mat[image_height - i - 1][j][1]);
+            data[index + 2] = static_cast<int>(color_mat[image_height - i - 1][j][2]);
             data[index + 3] = static_cast<int>(255);
             index += 4;
         }
@@ -247,7 +266,7 @@ void Game::calc_color_data(float viewport_width, float viewport_height, int imag
 //        }
 //    }
 
-    WriteToTxt(data, image_width, image_height, "data");
+    WriteToTxt(data, image_width, image_height, "data.txt");
     AddTexture(image_width, image_height, data);
 }
 
@@ -274,7 +293,7 @@ void Game::Init() {
     AddShader("../res/shaders/basicShader");
     calc_color_data(2.0, 2.0, 256, 256);
 
-//    AddTexture("../res/textures/box0.bmp", false);
+//    AddTexture("../res/textures/lena256.jpg", false);
 
     AddShape(Plane, -1, TRIANGLES);
 
