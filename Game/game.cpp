@@ -5,6 +5,7 @@
 #include <fstream>
 #include <sstream>
 
+using namespace glm;
 #define color_size_bytes 4
 #define to_index(i, j) i * image_width * color_size_bytes + j * color_size_bytes
 #define set_val(ARR, INDEX, vec) ARR[INDEX] = vec.x; ARR[INDEX+1] = vec.y; ARR[INDEX+2] = vec.z; ARR[INDEX+3] = 255;
@@ -181,28 +182,45 @@ void read_file() {
 
 /*  ************************************************** end parser **************************************************** */
 
+float hit_sphere(const glm::vec3 center, float radius, const ray &r) {
+    glm::vec3 sphere_center = r.origin() - center;
+    float a = glm::dot(r.direction(), r.direction());
+    float half_b = glm::dot(sphere_center, r.direction());
+    float c = glm::dot(sphere_center, sphere_center) - radius * radius;
+    float discriminant = half_b * half_b - a * c;
+    if (discriminant < 0)
+        return -1.0f;
+    else {
+        return (-half_b - sqrt(discriminant)) / a;
+    }
+}
 
 glm::vec3 ray_color(const ray &r) {
+    float t = hit_sphere(glm::vec3(0, 0, -1), 0.5f, r);
+    if (t > 0.0f) {
+        glm::vec3 normal = glm::normalize(r.at(t) - glm::vec3(0, 0, -1));
+        return 0.5f * glm::vec3((normal.x) + 1, (normal.y) + 1, (normal.z) + 1);
+    }
     glm::vec3 unit_direction = glm::normalize(r.direction());
-    float t = 0.5f * (unit_direction.y + 1.0f);
-    float diffuse = 1.0f;
-    float specular = 0.7f;
-    return (1.0f - t) * glm::vec3(1.0, 1.0, 1.0) +
-    t * glm::vec3(0.5, 0.7, 1.0);
+    t = 0.5f * (unit_direction.y + 1.0f);
+    return ((1.0f - t) * glm::vec3(1.0, 1.0, 1.0) +
+            t * glm::vec3(0.5, 0.7, 1.0));
 
-
+//    float diffuse = 1.0f;
+//    float specular = 0.7f;
 }
 
 void Game::calc_color_data(float viewport_width, float viewport_height, int image_width, int image_height) {
     float color_mat[image_width][image_height][3];
     glm::vec3 eye = glm::vec3(eye_camera[0].x, eye_camera[0].y, eye_camera[0].z); //origin
+//    glm::vec3 eye = glm::vec3(0, 0, 4); //origin
     glm::vec3 horizontal = glm::vec3(viewport_width, 0, 0); // X axis
     glm::vec3 vertical = glm::vec3(0, viewport_height, 0); // Y axis
-    glm::vec3 focal_length = glm::vec3 (0,0,1.0f); // distance from camera to screen
+    glm::vec3 focal_length = glm::vec3(0, 0, 1.0f); // distance from camera to screen
     glm::vec3 lower_left_corner =
             eye - horizontal / 2.0f - vertical / 2.0f - focal_length;
     unsigned char *data = new unsigned char[image_width * image_height * color_size_bytes];
-    for (int i = image_height -1 ; i >=0 ; i--) {
+    for (int i = image_height - 1; i >= 0; i--) {
         for (int j = 0; j < image_width; j++) {
             float u = float(j) / (float) (image_width - 1);
             float v = float(i) / (float) (image_height - 1);
@@ -217,18 +235,27 @@ void Game::calc_color_data(float viewport_width, float viewport_height, int imag
     int index = 0;
     for (int i = 0; i < image_height; i++) {
         for (int j = 0; j < image_width; j++) {
-            data[index] = static_cast<int>(color_mat[i][j][0]*255.999);
-            data[index+1] = static_cast<int>(color_mat[i][j][1]*255.999);
-            data[index+2] = static_cast<int>(color_mat[i][j][2]*255.999);
-            data[index+3] = static_cast<int>(255);
-            index+=4;
+            data[index] = static_cast<int>(color_mat[i][j][0] * 255.999);
+            data[index + 1] = static_cast<int>(color_mat[i][j][1] * 255.999);
+            data[index + 2] = static_cast<int>(color_mat[i][j][2] * 255.999);
+            data[index + 3] = static_cast<int>(255);
+            index += 4;
         }
-
     }
+//    for (int i = 0; i < image_height; i++) {
+//        for (int j = 0; j < image_width; j++) {
+//            data[index] = static_cast<int>(255);
+//            data[index+1] = static_cast<int>(0);
+//            data[index+2] = static_cast<int>(0);
+//            data[index+3] = static_cast<int>(255);
+//            index+=4;
+//        }
+//    }
 
-//    WriteToTxt(data,image_width,image_height,"data");
+    WriteToTxt(data, image_width, image_height, "data");
     AddTexture(image_width, image_height, data);
 }
+
 
 static void printMat(const glm::mat4 mat) {
     std::cout << " matrix:" << std::endl;
@@ -250,7 +277,7 @@ void Game::Init() {
 //    std::cout << spheres.size() << std::endl; //checking count of spheres = V
     AddShader("../res/shaders/pickingShader");
     AddShader("../res/shaders/basicShader");
-    calc_color_data(2.0, 2.0 ,256,256 );
+    calc_color_data(2.0, 2.0, 256, 256);
 
 //    AddTexture("../res/textures/box0.bmp", false);
 
