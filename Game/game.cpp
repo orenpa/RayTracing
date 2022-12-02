@@ -7,6 +7,7 @@
 
 #define color_size_bytes 4
 #define to_index(i, j) i * image_width * color_size_bytes + j * color_size_bytes
+#define set_val(ARR, INDEX, vec) ARR[INDEX] = vec.x; ARR[INDEX+1] = vec.y; ARR[INDEX+2] = vec.z; ARR[INDEX+3] = 255;
 static std::vector<glm::vec4> spheres;
 static std::vector<glm::vec4> planes;
 static std::vector<glm::vec4> ambient_color;
@@ -16,6 +17,21 @@ static std::vector<glm::vec4> direct_lights;
 static std::vector<glm::vec4> spotlights;
 static std::vector<glm::vec4> eye_camera;
 
+static void WriteToTxt(unsigned char* data, int image_width,int image_height, std::string name){
+    std::ofstream txt_file;
+    txt_file.open(name, std::ofstream::out);
+    if (txt_file.is_open()) {
+        for (int i = 0; i < image_height; i++) {
+            for (int j = 0; j < image_width; j++) {
+                txt_file << (int) data[to_index(i,j)] << ",";
+            }
+            txt_file << '\n';
+        }
+    } else {
+        std::cout << "error in opening file" << std::endl;
+    }
+    txt_file.close();
+}
 
 //setting coords of vec
 glm::vec4 set_coords(std::vector<std::string> &coords) {
@@ -29,8 +45,11 @@ glm::vec4 set_coords(std::vector<std::string> &coords) {
 }
 
 //for checking vec coordinates
-void print_vec(std::string type, glm::vec4 &vec) {
+void print_vec4(std::string type, glm::vec4 &vec) {
     std::cout << type << " " << vec.x << " " << vec.y << " " << vec.z << " " << vec.w << std::endl;
+}
+void print_vec3(std::string type, glm::vec3 &vec) {
+    std::cout << type << " " << static_cast<int>(255.999*vec.x) << " " << static_cast<int>(255.999*vec.y) << " " << static_cast<int>(255.999*vec.z) << std::endl;
 }
 
 // for string delimiter
@@ -69,7 +88,7 @@ void read_file() {
             glm::vec4 eye;
             eye = set_coords(temp_coords);
             eye_camera.push_back(eye);
-            print_vec("eye", eye); //vec coordinates check
+            print_vec4("eye", eye); //vec coordinates check
         }
             // AMBIENT VEC
         else if (line.substr(0, 2) == "a ") {
@@ -78,7 +97,7 @@ void read_file() {
             glm::vec4 ambient;
             ambient = set_coords(temp_coords);
             ambient_color.push_back(ambient);
-            print_vec("ambient", ambient); //vec coordinates check
+            print_vec4("ambient", ambient); //vec coordinates check
         }
             // OBJECT VEC
         else if (line.substr(0, 2) == "o ") {
@@ -90,7 +109,7 @@ void read_file() {
                 planes.push_back(object);
             else // it's a sphere
                 spheres.push_back(object);
-            print_vec("object", object); //vec coordinates check
+            print_vec4("object", object); //vec coordinates check
         }
             // COLOR OF OBJECT VEC
         else if (line.substr(0, 2) == "c ") {
@@ -99,7 +118,7 @@ void read_file() {
             glm::vec4 color;
             color = set_coords(temp_coords);
             object_colors.push_back(color);
-            print_vec("color", color); //vec coordinates check
+            print_vec4("color", color); //vec coordinates check
         }
             // DIRECT LIGHT VEC
         else if (line.substr(0, 2) == "d ") {
@@ -108,7 +127,7 @@ void read_file() {
             glm::vec4 direct;
             direct = set_coords(temp_coords);
             direct_lights.push_back(direct);
-            print_vec("direct", direct); //vec coordinates check
+            print_vec4("direct", direct); //vec coordinates check
         }
             // SPOTLIGHT VEC
         else if (line.substr(0, 2) == "p ") {
@@ -117,7 +136,7 @@ void read_file() {
             glm::vec4 spotlight;
             spotlight = set_coords(temp_coords);
             spotlights.push_back(spotlight);
-            print_vec("spotlight", spotlight); //vec coordinates check
+            print_vec4("spotlight", spotlight); //vec coordinates check
         }
             // LIGHT INTENSITY VEC
         else if (line.substr(0, 2) == "i ") {
@@ -126,7 +145,7 @@ void read_file() {
             glm::vec4 intensity;
             intensity = set_coords(temp_coords);
             light_intensity.push_back(intensity);
-            print_vec("intensity", intensity); //vec coordinates check
+            print_vec4("intensity", intensity); //vec coordinates check
         }
             // REFLECTIVE OBJECT VEC
         else if (line.substr(0, 2) == "r ") {
@@ -138,7 +157,7 @@ void read_file() {
                 planes.push_back(reflective);
             else // it's a sphere
                 spheres.push_back(reflective);
-            print_vec("reflective", reflective); //vec coordinates check
+            print_vec4("reflective", reflective); //vec coordinates check
         }
             // TRANSPARENT OBJECT VEC
         else if (line.substr(0, 2) == "t ") {
@@ -150,7 +169,7 @@ void read_file() {
                 planes.push_back(transparent);
             else // it's a sphere
                 spheres.push_back(transparent);
-            print_vec("transparent", transparent); //vec coordinates check
+            print_vec4("transparent", transparent); //vec coordinates check
         }
 
     }
@@ -163,7 +182,7 @@ void read_file() {
 
 glm::vec3 ray_color(const ray &r) {
     glm::vec3 unit_direction = glm::normalize(r.direction());
-    float t = 0.5 * (unit_direction.y + 1.0);
+    float t = 0.5f * (unit_direction.y + 1.0f);
     return static_cast<float>(1.0 - t) * glm::vec3(1.0, 1.0, 1.0) +
            static_cast<float>(t) * glm::vec3(0.5, 0.7, 1.0);
 }
@@ -178,16 +197,19 @@ void Game::calc_color_data(float viewport_width, float viewport_height, int imag
     unsigned char *data = new unsigned char [image_width * image_height * color_size_bytes];
     for (int i = image_height - 1; i >= 0; --i) {
         for (int j = 0; j < image_width; ++j) {
-            float u = float(i) / (image_width - 1);
-            float v = float(j) / (image_height - 1);
+            float u = float(j) / (float)(image_width - 1);
+            float v = float(i) / (float)(image_height - 1);
             ray r(eye, lower_left_corner + u * horizontal + v * vertical - eye);
             glm::vec3 pixel_color = ray_color(r);
-            data[to_index(i, j)] = pixel_color.x;
-//            data[to_index(i,j+1)] = pixel_color.y;
-//            data[to_index(i,j+2)] = pixel_color.z;
+//            print_vec3("color", pixel_color);
+            data[to_index(i,j)] = static_cast<int>(255.999*pixel_color.x);
+            data[to_index(i,j+1)] = static_cast<int>(255.999*pixel_color.y);
+            data[to_index(i,j+2)] = static_cast<int>(255.999*pixel_color.z);
+            data[to_index(i,j+3)] = 255;
+
         }
     }
-
+    WriteToTxt(data,image_width,image_height,"data");
     AddTexture(image_width, image_height, data);
 }
 
@@ -211,7 +233,7 @@ void Game::Init() {
 //    std::cout << spheres.size() << std::endl; //checking count of spheres = V
     AddShader("../res/shaders/pickingShader");
     AddShader("../res/shaders/basicShader");
-    calc_color_data((16.0f/9.0f)*2.0f,2.0,512,512);
+    calc_color_data(2.0,2.0,512,512);
 
 //    AddTexture("../res/textures/box0.bmp", false);
 
