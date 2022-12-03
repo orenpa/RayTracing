@@ -2,13 +2,13 @@
 #include "ray.h"
 #include "sphere.h"
 #include <iostream>
-#include <glm/gtc/matrix_transform.hpp>
 #include <fstream>
 #include <sstream>
 #include <cstdlib>
 #include "hittable_list.h"
 #include "light.h"
 #include "directional_light.h"
+#include "light_list.h"
 
 using namespace glm;
 #define color_size_bytes 4
@@ -23,7 +23,7 @@ static std::vector<glm::vec4> light_intensity;
 static std::vector<glm::vec4> direct_lights;
 static std::vector<glm::vec4> spotlights;
 static std::vector<glm::vec4> eye_camera;
-static glm::vec3 Ia = glm::vec3(1.6f,1.6f,1.6f); // ambient
+static glm::vec3 Ia = glm::vec3(1.0f,1.0f,1.0f); // ambient
 const float infinity = std::numeric_limits<float>::infinity();
 const double pi = 3.1415926535897932385;
 
@@ -195,13 +195,17 @@ inline float degrees_to_radians(float degrees) {
     return degrees * pi / 180.0;
 }
 
-glm::vec3 ray_color(const ray& r, const hittable& world, directional_light light_source, int depth) {
+ray calculate_reflected_ray(ray in_ray, glm::vec3 normal, glm::vec3 point){
+    return ray(point, 2.0f * (normal * in_ray.dir) * normal - in_ray.dir);
+}
+
+glm::vec3 ray_color(const ray& r, const hittable& world, light_list& light_sources, int depth) {
     if (depth == 0)
         return glm::vec3(0,0,0);
     hit_record rec;
     if (world.hit(r, 0, infinity, rec)) {
-        return (light_source.get_illumination(r, rec) + Ia * Ka) * rec.mat.base_color +
-                                        ray_color(ray(rec.point, 2.0f * (rec.normal * r.dir) * rec.normal - r.dir), world, light_source, depth - 1) * rec.mat.reflective;
+        return (light_sources.get_illumination(r, rec, const_cast<hittable &>(world)) + Ia * Ka) * rec.mat.base_color +
+               ray_color(calculate_reflected_ray(r, rec.normal, rec.point), world, light_sources, depth - 1) * rec.mat.reflective;
     }
     return glm::vec3(0,0,0); //infinity plane
 }
@@ -223,11 +227,12 @@ void Game::calc_color_data(float viewport_width, float viewport_height, int imag
     glm::vec3 focal_length = glm::vec3(0, 0, 4.0f); // distance from camera to screen
     glm::vec3 lower_left_corner =
             eye - horizontal / 2.0f - vertical / 2.0f - focal_length;
-    directional_light sun = directional_light(glm::vec3(1,-0.5,-0.2), glm::vec3(1.0f,1.0f,1.0f));
+    light_list lights = light_list();
+    lights.add(make_shared<directional_light>(glm::vec3(0.5,-1,0), glm::vec3(1.6f,1.6f,1.6f)));
     hittable_list world;
-    world.add(make_shared<sphere>(glm::vec3(0,0,-1), 0.5));
-    world.add(make_shared<sphere>(glm::vec3(0.5,-0.25,0), 0.25, material(glm::vec3(204,64,50), 0.0f)));
-    world.add(make_shared<sphere>(glm::vec3(0,-100.5,-1), 100, material(glm::vec3(50,50,50), 0.0f)));
+    world.add(make_shared<sphere>(glm::vec3(-0.3,0,0), 0.5, material(glm::vec3(50,64,200), 0.4f)));
+    world.add(make_shared<sphere>(glm::vec3(0.5,-0.25,0), 0.25, material(glm::vec3(200,60,60), 0.4f)));
+//    world.add(make_shared<sphere>(glm::vec3(0,-100.5,-1), 100, material(glm::vec3(50,50,50), 0.5f)));
     unsigned char *data = new unsigned char[image_width * image_height * color_size_bytes];
     for (int y = 0; y < image_height; y++) {
         for (int x = 0; x < image_width; x++) {
@@ -238,7 +243,7 @@ void Game::calc_color_data(float viewport_width, float viewport_height, int imag
                 glm::vec3 xDir = glm::vec3(2 * u, 0, 0);
                 glm::vec3 yDir = glm::vec3(0, 2 * v, 0);
                 ray r(eye, lower_left_corner + xDir + yDir - eye);
-                pixel_color += ray_color(r, world, sun, MAX_DEPTH);
+                pixel_color += ray_color(r, world, lights, MAX_DEPTH);
             }
             pixel_color = pixel_color / (float)sample_per_pixel;
             color_mat[y][x][0] = my_clamp(pixel_color.x);
@@ -266,7 +271,7 @@ void Game::calc_color_data(float viewport_width, float viewport_height, int imag
 //        }
 //    }
 
-    WriteToTxt(data, image_width, image_height, "data.txt");
+//    WriteToTxt(data, image_width, image_height, "data.txt");
     AddTexture(image_width, image_height, data);
 }
 
