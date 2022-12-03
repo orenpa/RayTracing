@@ -1,7 +1,3 @@
-//
-// Created by banan on 03/12/2022.
-//
-
 #include "light_list.h"
 
 glm::vec3 light_list::get_illumination(ray camera, hit_record start, hittable& world) const {

@@ -9,11 +9,13 @@
 
 struct material{
     material()= default;;
-    explicit material(glm::vec3 color, float r) {
+    explicit material(glm::vec3 color, float r, float transparency) {
         base_color = color;
         reflective = r;
+        transperancy = transparency;
     }
     float reflective;
+    float transperancy;
     glm::vec3 base_color;
 };
 
