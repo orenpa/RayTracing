@@ -218,7 +218,7 @@ float my_clamp(float x){
     return  glm::clamp(x, 0.0f, 255.0f);
 }
 
-const int sample_per_pixel = 20;
+const int sample_per_pixel = 50;
 void Game::calc_color_data(float viewport_width, float viewport_height, int image_width, int image_height) {
     float color_mat[image_width][image_height][3];
     glm::vec3 eye = glm::vec3(eye_camera[0].x, eye_camera[0].y, eye_camera[0].z); //origin
@@ -228,10 +228,11 @@ void Game::calc_color_data(float viewport_width, float viewport_height, int imag
     glm::vec3 lower_left_corner =
             eye - horizontal / 2.0f - vertical / 2.0f - focal_length;
     light_list lights = light_list();
-    lights.add(make_shared<directional_light>(glm::vec3(0.5,-1,0), glm::vec3(1.6f,1.6f,1.6f)));
+    lights.add(make_shared<directional_light>(glm::vec3(-0.5,0,0), glm::vec3(2.0f,2.0f,2.0f)));
+    lights.add(make_shared<directional_light>(glm::vec3(0,-1,-1), glm::vec3(2.0f,2.0f,2.0f)));
     hittable_list world;
-    world.add(make_shared<sphere>(glm::vec3(-0.3,0,0), 0.5, material(glm::vec3(50,64,200), 0.4f)));
-    world.add(make_shared<sphere>(glm::vec3(0.5,-0.25,0), 0.25, material(glm::vec3(200,60,60), 0.4f)));
+    world.add(make_shared<sphere>(glm::vec3(-0.3,0,0), 0.5, material(glm::vec3(50,64,200), 0.2f)));
+    world.add(make_shared<sphere>(glm::vec3(0.5,-0.25,0), 0.25, material(glm::vec3(200,60,60), 0.2f)));
 //    world.add(make_shared<sphere>(glm::vec3(0,-100.5,-1), 100, material(glm::vec3(50,50,50), 0.5f)));
     unsigned char *data = new unsigned char[image_width * image_height * color_size_bytes];
     for (int y = 0; y < image_height; y++) {
