@@ -14,7 +14,8 @@ using namespace glm;
 #define color_size_bytes 4
 #define to_index(i, j) i * image_width * color_size_bytes + j * color_size_bytes
 #define MAX_DEPTH 5
-
+#define air_constant 1.0f
+#define material_constant 1.5f
 static std::vector<glm::vec4> spheres;
 static std::vector<glm::vec4> planes;
 static std::vector<glm::vec4> ambient_color;
@@ -215,12 +216,12 @@ glm::vec3 ray_color(const ray& r, const hittable& world, light_list& light_sourc
     if (world.hit(r, 0, infinity, rec)) {
         float n1;
         float n2;
-        if (glm::dot(r.dir, rec.normal) > 0.0f){ // ray is comming from inside (important for snell's law
-            n1 = 1.5f;
-            n2 = 1.0f;
-        } else { // ray is comming from outside
-            n1 = 1.0f;
-            n2 = 1.5f;
+        if (glm::dot(r.dir, rec.normal) > 0.0f){ // ray is coming from inside (important for snell's law aka transparency)
+            n1 = material_constant;
+            n2 = air_constant;
+        } else { // ray is coming from outside
+            n1 = air_constant;
+            n2 = material_constant;
         }
         return (light_sources.get_illumination(r, rec, const_cast<hittable &>(world)) + Ia * Ka) * rec.mat.base_color + // light from light sources
                ray_color(calculate_reflected_ray(r, rec.normal, rec.point), world, light_sources, depth - 1) * rec.mat.reflective + // light from refractions
