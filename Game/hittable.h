@@ -13,10 +13,12 @@ struct material{
         base_color = color;
         reflective = r;
         transperancy = transparency;
+        Kd = 0.7f;
     }
     float reflective;
     float transperancy;
     glm::vec3 base_color;
+    float Kd;
 };
 
 struct hit_record {

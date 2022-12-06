@@ -6,7 +6,7 @@
 #include "hittable.h"
 #include "glm/detail/func_geometric.hpp"
 static float Kd = 0.7f;
-static float Ks = 0.3f;
+static float Ks = 0.7f;
 static float Ka = 0.7f; // ambient coefficient
 
 class light {
