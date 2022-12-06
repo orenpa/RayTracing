@@ -12,7 +12,7 @@ bool plane::hit(const ray &r, float t_min, float t_max, hit_record &rec) const {
         rec.normal = normal;
 //        rec.mat = mat;
         glm::vec3 projected_point = rec.point - (glm::dot(rec.normal, rec.point) * rec.normal);
-        if ((int(1.5 * projected_point.x) % 2) == (int(1.5 * projected_point.y) % 2))
+        if (((int)(std::floor(projected_point.x) + std::floor(projected_point.y)) % 2) == 0)
             rec.mat.Kd = 0.5f;
         else
             rec.mat = mat;

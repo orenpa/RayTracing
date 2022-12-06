@@ -15,7 +15,7 @@
 using namespace glm;
 #define color_size_bytes 4
 #define to_index(i, j) i * image_width * color_size_bytes + j * color_size_bytes
-#define MAX_DEPTH 5
+#define MAX_DEPTH 3
 #define THREADS_PER_ROW 2
 #define air_constant 1.0f
 #define material_constant 1.5f
@@ -27,7 +27,7 @@ static std::vector<glm::vec4> light_intensity;
 static std::vector<glm::vec4> direct_lights;
 static std::vector<glm::vec4> spotlights;
 static std::vector<glm::vec4> eye_camera;
-static glm::vec3 Ia = glm::vec3(0.2f,0.2f,0.2f); // ambient
+static glm::vec3 Ia = glm::vec3(1.2f,1.2f, 1.2f); // ambient
 const float infinity = std::numeric_limits<float>::infinity();
 const double pi = 3.1415926535897932385;
 
