@@ -9,6 +9,8 @@
 #include "light.h"
 #include "directional_light.h"
 #include "light_list.h"
+#include "spotlight.h"
+#include "glm/gtc/matrix_transform.hpp"
 
 using namespace glm;
 #define color_size_bytes 4
@@ -24,7 +26,7 @@ static std::vector<glm::vec4> light_intensity;
 static std::vector<glm::vec4> direct_lights;
 static std::vector<glm::vec4> spotlights;
 static std::vector<glm::vec4> eye_camera;
-static glm::vec3 Ia = glm::vec3(0.7f,0.7f,0.7f); // ambient
+static glm::vec3 Ia = glm::vec3(1.2f,1.2f,1.2f); // ambient
 const float infinity = std::numeric_limits<float>::infinity();
 const double pi = 3.1415926535897932385;
 
@@ -248,13 +250,12 @@ void Game::calc_color_data(float viewport_width, float viewport_height, int imag
     glm::vec3 lower_left_corner =
             eye - horizontal / 2.0f - vertical / 2.0f - focal_length;
     light_list lights = light_list();
-//    lights.add(make_shared<directional_light>(glm::vec3(-0.5,0,0), glm::vec3(2.0f,2.0f,2.0f)));
-    lights.add(make_shared<directional_light>(glm::vec3(-1,-1,-1), glm::vec3(2.0f,2.0f,2.0f)));
+    lights.add(make_shared<spotlight>(glm::vec3(0.0f,1.0f,1.0f), glm::vec3(0.0f,0.0f,1.0f), 0.5f, glm::vec3(4.0f,4.0f,4.0f)));
     hittable_list world;
-    world.add(make_shared<sphere>(glm::vec3(0,0,0), 0.5, material(glm::vec3(10,10,10), 0.2f, 1.0f)));
-    world.add(make_shared<sphere>(glm::vec3(0.75,0,-2), 0.5, material(glm::vec3(60,60,200), 0.2f, 0.0f)));
-    world.add(make_shared<sphere>(glm::vec3(-0.75,0,-2), 0.5, material(glm::vec3(200,60,60), 0.2f, 0.0f)));
-    world.add(make_shared<sphere>(glm::vec3(0,0,-100), 60, material(glm::vec3(60,200,60), 0.2f, 0.0f)));
+//    world.add(make_shared<sphere>(glm::vec3(0,0,0), 0.5, material(glm::vec3(10,10,10), 0.0f, 1.0f)));
+    world.add(make_shared<sphere>(glm::vec3(0.75,0,-2), 0.5, material(glm::vec3(60,60,200), 0.5f, 0.0f)));
+    world.add(make_shared<sphere>(glm::vec3(-0.75,0,-2), 0.5, material(glm::vec3(200,60,60), 0.5f, 0.0f)));
+    world.add(make_shared<sphere>(glm::vec3(0,0,-100), 60, material(glm::vec3(0,230,255), 0.2f, 0.0f)));
 //    world.add(make_shared<sphere>(glm::vec3(0,-100.5,-1), 100, material(glm::vec3(50,50,50), 0.5f)));
     unsigned char *data = new unsigned char[image_width * image_height * color_size_bytes];
     for (int y = 0; y < image_height; y++) {
@@ -266,7 +267,7 @@ void Game::calc_color_data(float viewport_width, float viewport_height, int imag
                 glm::vec3 xDir = glm::vec3(2 * u, 0, 0);
                 glm::vec3 yDir = glm::vec3(0, 2 * v, 0);
                 ray r(eye, lower_left_corner + xDir + yDir - eye);
-                pixel_color += ray_color(r, world, lights, 3);
+                pixel_color += ray_color(r, world, lights, MAX_DEPTH);
             }
             pixel_color = pixel_color / (float)sample_per_pixel;
             color_mat[y][x][0] = color_clamp(pixel_color.x);
