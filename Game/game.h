@@ -1,5 +1,6 @@
 #pragma once
 #include "scene.h"
+#include "light_list.h"
 
 class Game : public Scene
 {
