@@ -3,3 +3,4 @@
 build/
 cmake-build-debug
 # Files
+res/textures/lena256.jpg
