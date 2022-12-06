@@ -5,6 +5,7 @@
 #include <fstream>
 #include <sstream>
 #include <cstdlib>
+#include <thread>
 #include "hittable_list.h"
 #include "light.h"
 #include "directional_light.h"
@@ -14,6 +15,7 @@ using namespace glm;
 #define color_size_bytes 4
 #define to_index(i, j) i * image_width * color_size_bytes + j * color_size_bytes
 #define MAX_DEPTH 5
+#define THREADS_PER_ROW 2
 #define air_constant 1.0f
 #define material_constant 1.5f
 static std::vector<glm::vec4> spheres;
@@ -24,7 +26,7 @@ static std::vector<glm::vec4> light_intensity;
 static std::vector<glm::vec4> direct_lights;
 static std::vector<glm::vec4> spotlights;
 static std::vector<glm::vec4> eye_camera;
-static glm::vec3 Ia = glm::vec3(1.2f,1.2f,1.2f); // ambient
+static glm::vec3 Ia = glm::vec3(0.2f,0.2f,0.2f); // ambient
 const float infinity = std::numeric_limits<float>::infinity();
 const double pi = 3.1415926535897932385;
 
@@ -211,7 +213,7 @@ ray get_snell_ray(ray ray_in, float ni, float nr, hit_record hr){
 
 glm::vec3 ray_color(const ray& r, const hittable& world, light_list& light_sources, int depth) {
     if (depth == 0)
-        return glm::vec3(0,0,0);
+        return glm::vec3(0.0f,0.0f,0.0f);
     hit_record rec;
     if (world.hit(r, 0, infinity, rec)) {
         float n1;
@@ -227,7 +229,7 @@ glm::vec3 ray_color(const ray& r, const hittable& world, light_list& light_sourc
                ray_color(calculate_reflected_ray(r, rec.normal, rec.point), world, light_sources, depth - 1) * rec.mat.reflective + // light from refractions
                 ray_color(get_snell_ray(r, n1, n2, rec), world, light_sources, depth - 1) * rec.mat.transperancy; // light from transparency
     }
-    return glm::vec3(0,0,0); //infinity plane
+    return glm::vec3(0.0f,0.0f,0.0f); //infinity plane
 }
 
 float get_random(){
@@ -239,8 +241,14 @@ float color_clamp(float x){
 }
 
 const int sample_per_pixel = 25;
-void Game::calc_color_data(float viewport_width, float viewport_height, int image_width, int image_height) {
-    float color_mat[image_width][image_height][3];
+void Game::calc_color_data(float viewport_width, float viewport_height, int image_width, int image_height, int threads_per_row) {
+//    float color_mat[image_width][image_height][3];
+    auto*** color_mat = new float**[image_width]();
+    for(int i = 0; i < image_width; i ++){
+        color_mat[i] = new float*[image_height]();
+        for(int j = 0; j < image_height; j ++)
+            color_mat[i][j] = new float[3]();
+    }
     glm::vec3 eye = glm::vec3(eye_camera[0].x, eye_camera[0].y, eye_camera[0].z); //origin
     glm::vec3 horizontal = glm::vec3(viewport_width, 0, 0); // X axis
     glm::vec3 vertical = glm::vec3(0, viewport_height, 0); // Y axis
@@ -249,31 +257,39 @@ void Game::calc_color_data(float viewport_width, float viewport_height, int imag
             eye - horizontal / 2.0f - vertical / 2.0f - focal_length;
     light_list lights = light_list();
 //    lights.add(make_shared<directional_light>(glm::vec3(-0.5,0,0), glm::vec3(2.0f,2.0f,2.0f)));
-    lights.add(make_shared<directional_light>(glm::vec3(0,0,-1), glm::vec3(2.0f,2.0f,2.0f)));
+    lights.add(make_shared<directional_light>(glm::vec3(1,1,1), glm::vec3(1.0f,1.0f,1.0f)));
     hittable_list world;
-    world.add(make_shared<sphere>(glm::vec3(0,0,0), 0.5, material(glm::vec3(10,10,10), 0.0f, 1.0f)));
-    world.add(make_shared<sphere>(glm::vec3(0.75,0,-2), 0.5, material(glm::vec3(60,60,200), 0.2f, 0.0f)));
-    world.add(make_shared<sphere>(glm::vec3(-0.75,0,-2), 0.5, material(glm::vec3(200,60,60), 0.2f, 0.0f)));
-    world.add(make_shared<sphere>(glm::vec3(0,0,-100), 60, material(glm::vec3(60,200,60), 0.2f, 0.0f)));
+//    world.add(make_shared<sphere>(glm::vec3(0,0,0), 0.5, material(glm::vec3(10,10,10), 0.0f, 1.0f)));
+    world.add(make_shared<sphere>(glm::vec3(0.75,0,-2), 0.5, material(glm::vec3(60,60,200), 0.5f, 0.0f)));
+    world.add(make_shared<sphere>(glm::vec3(-0.75,0,-2), 0.5, material(glm::vec3(200,60,60), 0.5f, 0.0f)));
+    world.add(make_shared<sphere>(glm::vec3(0,0,-100), 60, material(glm::vec3(0,230,255), 0.2f, 0.0f)));
 //    world.add(make_shared<sphere>(glm::vec3(0,-100.5,-1), 100, material(glm::vec3(50,50,50), 0.5f)));
-    unsigned char *data = new unsigned char[image_width * image_height * color_size_bytes];
-    for (int y = 0; y < image_height; y++) {
-        for (int x = 0; x < image_width; x++) {
-            glm::vec3 pixel_color = glm::vec3(0,0,0);
-            for (int s = 0; s < sample_per_pixel; s++) {
-                float u = (float(x) + get_random()) / (float) (image_width - 1);
-                float v = (float(y)+ get_random()) / (float) (image_height - 1);
-                glm::vec3 xDir = glm::vec3(2 * u, 0, 0);
-                glm::vec3 yDir = glm::vec3(0, 2 * v, 0);
-                ray r(eye, lower_left_corner + xDir + yDir - eye);
-                pixel_color += ray_color(r, world, lights, MAX_DEPTH);
+    auto foo =[&world, &lights, &color_mat, &lower_left_corner, &eye](int image_width, int image_height, int y0, int x0, int threads_per_row) {
+        for (int y = y0; y < image_height; y++) {
+            for (int x = x0; x < image_width; x++) {
+                glm::vec3 pixel_color = glm::vec3(0.0f,0.0f,0.0f);
+                for (int s = 0; s < sample_per_pixel; s++) {
+                    float u = (float(x) + get_random()) / (float) (threads_per_row*(image_width - x0) - 1);
+                    float v = (float(y)+ get_random()) / (float) (threads_per_row*(image_height - y0) - 1);
+                    glm::vec3 xDir = glm::vec3(2 * u, 0, 0);
+                    glm::vec3 yDir = glm::vec3(0, 2 * v, 0);
+                    ray r(eye, lower_left_corner + xDir + yDir - eye);
+                    pixel_color += ray_color(r, world, lights, MAX_DEPTH);
+                }
+                pixel_color = pixel_color / (float)sample_per_pixel;
+                color_mat[y][x][0] = color_clamp(pixel_color.x);
+                color_mat[y][x][1] = color_clamp(pixel_color.y);
+                color_mat[y][x][2] = color_clamp(pixel_color.z);
             }
-            pixel_color = pixel_color / (float)sample_per_pixel;
-            color_mat[y][x][0] = color_clamp(pixel_color.x);
-            color_mat[y][x][1] = color_clamp(pixel_color.y);
-            color_mat[y][x][2] = color_clamp(pixel_color.z);
         }
-    }
+    };
+    unsigned char *data = new unsigned char[image_width * image_height * color_size_bytes];
+    std::thread threads[threads_per_row * threads_per_row];
+    for (int i = 0; i < threads_per_row; i ++)
+        for (int j = 0; j < threads_per_row; j ++)
+            threads[threads_per_row * i + j] = std::thread(foo, (1+ i) *(image_width / threads_per_row), (1 + j) * (image_height / threads_per_row), j* (image_height / threads_per_row), i* (image_height / threads_per_row), threads_per_row);
+    for (int i = 0; i < threads_per_row * threads_per_row; i ++)
+        threads[i].join();
     int index = 0;
     for (int i = 0; i < image_height; i++) {
         for (int j = 0; j < image_width; j++) {
@@ -284,16 +300,6 @@ void Game::calc_color_data(float viewport_width, float viewport_height, int imag
             index += 4;
         }
     }
-//    for (int i = 0; i < image_height; i++) {
-//        for (int j = 0; j < image_width; j++) {
-//            data[index] = static_cast<int>(255);
-//            data[index+1] = static_cast<int>(0);
-//            data[index+2] = static_cast<int>(0);
-//            data[index+3] = static_cast<int>(255);
-//            index+=4;
-//        }
-//    }
-
 //    WriteToTxt(data, image_width, image_height, "data.txt");
     AddTexture(image_width, image_height, data);
 }
@@ -319,9 +325,7 @@ void Game::Init() {
 //    std::cout << spheres.size() << std::endl; //checking count of spheres = V
     AddShader("../res/shaders/pickingShader");
     AddShader("../res/shaders/basicShader");
-    calc_color_data(2.0, 2.0, 256, 256);
-
-//    AddTexture("../res/textures/lena256.jpg", false);
+    calc_color_data(2.0, 2.0, 512, 512, THREADS_PER_ROW);
 
     AddShape(Plane, -1, TRIANGLES);
 
