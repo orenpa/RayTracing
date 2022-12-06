@@ -15,6 +15,7 @@ using namespace glm;
 #define color_size_bytes 4
 #define to_index(i, j) i * image_width * color_size_bytes + j * color_size_bytes
 #define MAX_DEPTH 5
+#define THREADS_PER_ROW 2
 #define air_constant 1.0f
 #define material_constant 1.5f
 static std::vector<glm::vec4> spheres;
@@ -239,8 +240,8 @@ float color_clamp(float x){
     return  glm::clamp(x, 0.0f, 255.0f);
 }
 
-const int sample_per_pixel = 60;
-void Game::calc_color_data(float viewport_width, float viewport_height, int image_width, int image_height) {
+const int sample_per_pixel = 25;
+void Game::calc_color_data(float viewport_width, float viewport_height, int image_width, int image_height, int threads_per_row) {
 //    float color_mat[image_width][image_height][3];
     auto*** color_mat = new float**[image_width]();
     for(int i = 0; i < image_width; i ++){
@@ -283,7 +284,6 @@ void Game::calc_color_data(float viewport_width, float viewport_height, int imag
         }
     };
     unsigned char *data = new unsigned char[image_width * image_height * color_size_bytes];
-    int threads_per_row = 4;
     std::thread threads[threads_per_row * threads_per_row];
     for (int i = 0; i < threads_per_row; i ++)
         for (int j = 0; j < threads_per_row; j ++)
@@ -325,7 +325,7 @@ void Game::Init() {
 //    std::cout << spheres.size() << std::endl; //checking count of spheres = V
     AddShader("../res/shaders/pickingShader");
     AddShader("../res/shaders/basicShader");
-    calc_color_data(2.0, 2.0, 512, 512);
+    calc_color_data(2.0, 2.0, 256, 256, THREADS_PER_ROW);
 
     AddShape(Plane, -1, TRIANGLES);
 

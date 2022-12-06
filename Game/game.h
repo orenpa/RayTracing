@@ -16,6 +16,6 @@ public:
 	void Motion();
 	~Game(void);
 
-    void calc_color_data(float viewport_width, float viewport_heigt, int image_width, int image_height);
+    void calc_color_data(float viewport_width, float viewport_heigt, int image_width, int image_height, int threads_per_row);
 };
 
