@@ -9,7 +9,7 @@ bool plane::hit(const ray &r, float t_min, float t_max, hit_record &rec) const {
         float t = (-(glm::dot(r.origin(), normal) + scalar)) / denom;
         rec.t = t;
         rec.point = r.origin() + t * r.direction();
-        rec.normal = normal;
+        rec.normal = normal * -1.0f;
 //        rec.mat = mat;
         glm::vec3 projected_point = rec.point - (glm::dot(rec.normal, rec.point) * rec.normal);
         if (((int)(std::floor(projected_point.x) + std::floor(projected_point.y)) % 2) == 0)

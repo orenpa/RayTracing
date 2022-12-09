@@ -5,7 +5,7 @@ glm::vec3 light_list::get_illumination(ray camera, hit_record start, hittable& w
     glm::vec3 illumination = glm::vec3(0,0,0);
     for (const auto& light_source : light_sources){
         ray r = ray(start.point, light_source->get_ray(start.point));
-        if(world.hit(r, 0, light_source->get_t(start.point), rec)){
+        if(world.hit(r, 0.001f, light_source->get_t(start.point), rec)){
             continue;
         } else illumination += light_source->get_illumination(camera, start);
     }
