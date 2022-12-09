@@ -206,12 +206,12 @@ ray calculate_reflected_ray(ray in_ray, glm::vec3 normal, glm::vec3 point){
 }
 
 ray get_snell_ray(ray ray_in, float ni, float nr, hit_record hr){
-    glm::vec3 L = ray_in.dir * (-1.f);
+    glm::vec3 L = ray_in.dir * (-1.0f);
     float theta_i = glm::dot(L, hr.normal);
-    float theta_r = asin((ni / nr) * sin(theta_i));
+    float theta_r = asin(glm::clamp((ni / nr) * sin(theta_i), -1.f, 1.f));
     glm::vec3 Tvec = ((ni / nr) * cos(theta_i) - cos(theta_r)) * hr.normal - (ni / nr) * L;
-//    Tvec = glm::normalize(Tvec);
-    return ray(hr.point, Tvec);
+    Tvec = glm::normalize(Tvec);
+    return ray(hr.point + Tvec, Tvec);
 }
 
 void max_vec(glm::vec3& v, float x){
@@ -224,7 +224,7 @@ glm::vec3 ray_color(const ray& r, const hittable& world, light_list& light_sourc
     if (depth == 0)
         return glm::vec3(0.0f,0.0f,0.0f);
     hit_record rec;
-    if (world.hit(r, 0, infinity, rec)) {
+    if (world.hit(r, 0.0001f, infinity, rec)) {
         float n1;
         float n2;
         if (glm::dot(r.dir, rec.normal) > 0.0f){ // ray is coming from inside (important for snell's law aka transparency)
@@ -235,8 +235,8 @@ glm::vec3 ray_color(const ray& r, const hittable& world, light_list& light_sourc
             n2 = material_constant;
         }
         glm::vec3 output = (light_sources.get_illumination(r, rec, const_cast<hittable &>(world)) + Ia * Ka) * rec.mat.base_color + // light from light sources
-               ray_color(calculate_reflected_ray(r, rec.normal, rec.point), world, light_sources, depth - 1) * rec.mat.reflective/* + // light from refractions
-                ray_color(get_snell_ray(r, n1, n2, rec), world, light_sources, depth - 1) * rec.mat.transperancy*/; // light from transparency
+               ray_color(calculate_reflected_ray(r, rec.normal, rec.point), world, light_sources, depth - 1) * rec.mat.reflective + // light from refractions
+                ray_color(get_snell_ray(r, n1, n2, rec), world, light_sources, depth - 1) * rec.mat.transperancy/**/; // light from transparency
         max_vec(output, 0.0f);
         return output;
     }
@@ -270,13 +270,12 @@ void Game::calc_color_data(float viewport_width, float viewport_height, int imag
     light_list lights = light_list();
 //    lights.add(make_shared<directional_light>(glm::vec3(-0.5,0,0), glm::vec3(2.0f,2.0f,2.0f)));
     lights.add(make_shared<directional_light>(glm::vec3(1,1,1), glm::vec3(1.0f,1.0f,1.0f)));
+//    lights.add(make_shared<directional_light>(glm::vec3(-1,1,1), glm::vec3(1.0f,1.0f,1.0f)));
     hittable_list world;
-    world.add(make_shared<plane>(glm::vec3(0.0f, -0.5f ,-1.0f), -3.5f ,material(glm::vec3(50,50,50), 0.0f,0.0f)));
+    world.add(make_shared<plane>(glm::vec3(0.0f, -0.5f ,-1.0f), -3.5f ,material(glm::vec3(50,50,50), 1.0f,0.0f)));
 //    world.add(make_shared<sphere>(glm::vec3(0,0,0), 0.5, material(glm::vec3(10,10,10), 0.0f, 1.0f)));
-    world.add(make_shared<sphere>(glm::vec3(0.75,0,-2), 0.5, material(glm::vec3(60,60,200), 1.0f, 0.0f)));
-    world.add(make_shared<sphere>(glm::vec3(-0.75,0,-2), 0.5, material(glm::vec3(200,60,60), 1.0f, 0.0f)));
-//    world.add(make_shared<sphere>(glm::vec3(0,0,-100), 60, material(glm::vec3(60,200,60), 0.2f, 0.0f)));
-//    world.add(make_shared<sphere>(glm::vec3(0,-100.5,-1), 100, material(glm::vec3(50,50,50), 0.5f)));
+    world.add(make_shared<sphere>(glm::vec3(0.75,0,-2), 0.5, material(glm::vec3(10,10,10), 1.0f, 1.f)));
+    world.add(make_shared<sphere>(glm::vec3(-0.75,0,-2), 0.5, material(glm::vec3(200,60,60), 0.2f, 0.0f)));
     auto foo =[&world, &lights, &color_mat, &lower_left_corner, &eye](int image_width, int image_height, int y0, int x0, int threads_per_row) {
         for (int y = y0; y < image_height; y++) {
             for (int x = x0; x < image_width; x++) {
