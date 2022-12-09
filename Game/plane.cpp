@@ -2,6 +2,7 @@
 #include <algorithm>
 #include "plane.h"
 #include "glm/detail/func_geometric.hpp"
+#include "light.h"
 
 bool plane::hit(const ray &r, float t_min, float t_max, hit_record &rec) const {
     float denom = glm::dot(normal, r.direction());
@@ -10,12 +11,12 @@ bool plane::hit(const ray &r, float t_min, float t_max, hit_record &rec) const {
         rec.t = t;
         rec.point = r.origin() + (t - 0.000001f) * r.direction();
         rec.normal = normal * -1.0f;
-//        rec.mat = mat;
+        rec.mat = mat;
         glm::vec3 projected_point = rec.point - (glm::dot(rec.normal, rec.point) * rec.normal);
         if (((int)(std::floor(projected_point.x) + std::floor(projected_point.y)) % 2) == 0)
             rec.mat.Kd = 0.5f;
         else
-            rec.mat = mat;
+            rec.mat.Kd = Kd;
         return t >= 0;
     }
     return false;

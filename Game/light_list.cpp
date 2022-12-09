@@ -1,5 +1,7 @@
 #include "light_list.h"
 
+static glm::vec3 Ia = glm::vec3(.2f,.2f,.2f); // ambient
+
 glm::vec3 light_list::get_illumination(ray camera, hit_record start, hittable& world) const {
     hit_record rec;
     camera.dir = glm::normalize(camera.dir);
@@ -10,5 +12,5 @@ glm::vec3 light_list::get_illumination(ray camera, hit_record start, hittable& w
             continue;
         } else illumination += light_source->get_illumination(camera, start);
     }
-    return illumination;
+    return illumination + Ia * start.mat.Kd;
 }

@@ -8,13 +8,15 @@ spotlight::spotlight(glm::vec3 origin, glm::vec3 dir, float cut_off_angle, glm::
 }
 
 float spotlight::get_t(glm::vec3 point) const {
-    return 0;
+    glm::vec3 dir_to_point = point - r.origin();
+    dir_to_point = glm::normalize(dir_to_point);
+    return (r.origin().x - point.x)/dir_to_point.x;
 }
 
 glm::vec3 spotlight::get_ray(glm::vec3 point) const {
     glm::vec3 dir_to_point = point - r.origin();
     dir_to_point = glm::normalize(dir_to_point);
-    float degree = std::acos(glm::dot(dir_to_point, r.direction()));
+    float degree = std::acos(glm::clamp(glm::dot(dir_to_point, r.direction()), -0.999f,.9999f));
     if(degree > cut_off_angle)
         return glm::vec3(0.0f, 0.0f, 0.0f);
     else return dir_to_point;

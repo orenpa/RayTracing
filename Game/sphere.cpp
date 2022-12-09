@@ -30,15 +30,6 @@ bool sphere::hit(const ray &r, float t_min, float t_max, hit_record& rec) const 
     rec.t = root;
     rec.point = r.at(rec.t);
     rec.normal = (rec.point - center) / radius;
-//    glm::vec3 point = rec.t;
-
-//    std::cout << "r: \n";
-//    std::cout << r.direction().x;
-//    std::cout << "\n";
-//    std::cout << r.direction().y;
-//    std::cout << "\n";
-//    std::cout << r.direction().z;
-//    std::cout << "\n";
     rec.mat = mat;
 
     return true;
