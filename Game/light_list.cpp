@@ -1,7 +1,9 @@
+#include <iostream>
 #include "light_list.h"
 
 glm::vec3 light_list::get_illumination(ray camera, hit_record start, hittable& world) const {
     hit_record rec;
+    camera.dir = glm::normalize(camera.dir);
     glm::vec3 illumination = glm::vec3(0,0,0);
     for (const auto& light_source : light_sources){
         ray r = ray(start.point, light_source->get_ray(start.point));
