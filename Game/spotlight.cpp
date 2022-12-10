@@ -19,5 +19,5 @@ glm::vec3 spotlight::get_ray(glm::vec3 point) const {
     float degree = std::acos(glm::clamp(glm::dot(dir_to_point, r.direction()), -0.999f,.9999f));
     if(degree > cut_off_angle)
         return glm::vec3(0.0f, 0.0f, 0.0f);
-    else return dir_to_point;
+    else return dir_to_point * -1.f;
 }

@@ -16,6 +16,8 @@ public:
 	void Motion();
 	~Game(void);
 
-    void calc_color_data(float viewport_width, float viewport_heigt, int image_width, int image_height, int threads_per_row);
+    void calc_color_data(light_list &lights, hittable_list &world, float viewport_width, float viewport_heigt, int image_width, int image_height, int threads_per_row);
+
+    void add_color_mat_texture(int image_width, int image_height, float **const *color_mat);
 };
 

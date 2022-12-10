@@ -20,8 +20,7 @@ using namespace glm;
 #define THREADS_PER_ROW 2
 #define air_constant 1.0f
 #define material_constant 1.5f
-static std::vector<glm::vec4> spheres;
-static std::vector<glm::vec4> planes;
+static std::vector<std::tuple<glm::vec4, char>> objects;
 static std::vector<glm::vec4> ambient_color;
 static std::vector<glm::vec4> object_colors;
 static std::vector<glm::vec4> light_intensity;
@@ -86,7 +85,7 @@ std::vector<std::string> split(std::string s, std::string delimiter) {
 
 //reading specified file
 void read_file() {
-    std::ifstream in("../res/scene.txt", std::ios::in);
+    std::ifstream in("../res/scene5.txt", std::ios::in);
 
     if (!in) {
         printf("\ncan't open input file\n");
@@ -121,10 +120,7 @@ void read_file() {
             temp_coords = split(a, " ");
             glm::vec4 object;
             object = set_coords(temp_coords);
-            if (object.w <= 0) //if it's a plane
-                planes.push_back(object);
-            else // it's a sphere
-                spheres.push_back(object);
+            objects.push_back(std::make_tuple(object, 'o'));
             print_vec4("object", object); //vec coordinates check
         }
             // COLOR OF OBJECT VEC
@@ -169,10 +165,7 @@ void read_file() {
             temp_coords = split(a, " ");
             glm::vec4 reflective;
             reflective = set_coords(temp_coords);
-            if (reflective.w <= 0) //if it's a plane
-                planes.push_back(reflective);
-            else // it's a sphere
-                spheres.push_back(reflective);
+            objects.push_back(std::make_tuple(reflective, 'r'));
             print_vec4("reflective", reflective); //vec coordinates check
         }
             // TRANSPARENT OBJECT VEC
@@ -181,10 +174,7 @@ void read_file() {
             temp_coords = split(a, " ");
             glm::vec4 transparent;
             transparent = set_coords(temp_coords);
-            if (transparent.w <= 0) //if it's a plane
-                planes.push_back(transparent);
-            else // it's a sphere
-                spheres.push_back(transparent);
+            objects.push_back(std::make_tuple(transparent, 't'));
             print_vec4("transparent", transparent); //vec coordinates check
         }
 
@@ -236,7 +226,7 @@ glm::vec3 ray_color(const ray& r, const hittable& world, light_list& light_sourc
         }
         glm::vec3 output = (light_sources.get_illumination(r, rec, const_cast<hittable &>(world))) * rec.mat.base_color + // light from light sources
                ray_color(calculate_reflected_ray(r, rec.normal, rec.point), world, light_sources, depth - 1) * rec.mat.reflective + // light from refractions
-                ray_color(get_snell_ray(r, n1, n2, rec), world, light_sources, depth - 1) * rec.mat.transperancy/**/; // light from transparency
+                ray_color(get_snell_ray(r, n1, n2, rec), world, light_sources, depth - 1) * rec.mat.transperancy; // light from transparency
         max_vec(output, 0.0f);
         return output;
     }
@@ -245,38 +235,29 @@ glm::vec3 ray_color(const ray& r, const hittable& world, light_list& light_sourc
 
 float get_random(){
     return (float)rand() /(RAND_MAX + 1);
-//    return 0;
 }
 
 float color_clamp(float x){
     return  glm::clamp(x, 0.0f, 255.0f);
 }
 
-const int sample_per_pixel = 25;
-void Game::calc_color_data(float viewport_width, float viewport_height, int image_width, int image_height, int threads_per_row) {
-//    float color_mat[image_width][image_height][3];
+const int sample_per_pixel = 20;
+void Game::calc_color_data(light_list& lights, hittable_list& world, float viewport_width, float viewport_height, int image_width, int image_height, int threads_per_row) {
     auto*** color_mat = new float**[image_width]();
     for(int i = 0; i < image_width; i ++){
         color_mat[i] = new float*[image_height]();
         for(int j = 0; j < image_height; j ++)
             color_mat[i][j] = new float[3]();
     }
+    std::cout << "light sources amount: " << lights.light_sources.size() << '\n';
+    std::cout << "objs amount: " << world.objects.size() << '\n';
     glm::vec3 eye = glm::vec3(eye_camera[0].x, eye_camera[0].y, eye_camera[0].z); //origin
     glm::vec3 horizontal = glm::vec3(viewport_width, 0, 0); // X axis
     glm::vec3 vertical = glm::vec3(0, viewport_height, 0); // Y axis
     glm::vec3 focal_length = glm::vec3(0, 0, eye_camera[0].z); // distance from camera to screen
     glm::vec3 lower_left_corner =
             eye - horizontal / 2.0f - vertical / 2.0f - focal_length;
-    light_list lights = light_list();
-//    lights.add(make_shared<directional_light>(glm::vec3(-0.5,0,0), glm::vec3(2.0f,2.0f,2.0f)));
-//    lights.add(make_shared<directional_light>(glm::vec3(1,1,1), glm::vec3(1.0f,1.0f,1.0f)));
-    lights.add(make_shared<spotlight>(glm::vec3(0,0,-4), glm::vec3(0.0f,0.0f,1.0f), ((float) 1/ 3) * pi, glm::vec3(1.f, 1.f, 1.f)));
-//    lights.add(make_shared<directional_light>(glm::vec3(-1,1,1), glm::vec3(1.0f,1.0f,1.0f)));
-    hittable_list world;
-    world.add(make_shared<plane>(glm::vec3(0.0f, .0f ,-1.0f), -3.5f ,material(glm::vec3(50,50,50), 0.2f,0.0f)));
-//    world.add(make_shared<sphere>(glm::vec3(0,0,0), 0.5, material(glm::vec3(10,10,10), 0.0f, 1.0f)));
-    world.add(make_shared<sphere>(glm::vec3(0.75,0,-2), 0.5, material(glm::vec3(60,60,200), .2f, 0.f)));
-    world.add(make_shared<sphere>(glm::vec3(-0.75,0,-2), 0.5, material(glm::vec3(200,60,60), 0.2f, 0.0f)));
+
     auto foo =[&world, &lights, &color_mat, &lower_left_corner, &eye](int image_width, int image_height, int y0, int x0, int threads_per_row) {
         for (int y = y0; y < image_height; y++) {
             for (int x = x0; x < image_width; x++) {
@@ -296,13 +277,17 @@ void Game::calc_color_data(float viewport_width, float viewport_height, int imag
             }
         }
     };
-    unsigned char *data = new unsigned char[image_width * image_height * color_size_bytes];
     std::thread threads[threads_per_row * threads_per_row];
     for (int i = 0; i < threads_per_row; i ++)
         for (int j = 0; j < threads_per_row; j ++)
             threads[threads_per_row * i + j] = std::thread(foo, (1+ i) *(image_width / threads_per_row), (1 + j) * (image_height / threads_per_row), j* (image_height / threads_per_row), i* (image_height / threads_per_row), threads_per_row);
     for (int i = 0; i < threads_per_row * threads_per_row; i ++)
         threads[i].join();
+    add_color_mat_texture(image_width, image_height, color_mat);
+}
+
+void Game::add_color_mat_texture(int image_width, int image_height, float **const *color_mat) {
+    unsigned char *data = new unsigned char[image_width * image_height * color_size_bytes];
     int index = 0;
     for (int i = 0; i < image_height; i++) {
         for (int j = 0; j < image_width; j++) {
@@ -313,18 +298,8 @@ void Game::calc_color_data(float viewport_width, float viewport_height, int imag
             index += 4;
         }
     }
-//    for (int i = 0; i < image_height; i++) {
-//        for (int j = 0; j < image_width; j++) {
-//            data[index] = static_cast<int>(255);
-//            data[index+1] = static_cast<int>(0);
-//            data[index+2] = static_cast<int>(0);
-//            data[index+3] = static_cast<int>(255);
-//            index+=4;
-//        }
-//    }
-
-//    WriteToTxt(data, image_width, image_height, "data.txt");
     AddTexture(image_width, image_height, data);
+//    WriteToTxt(data, image_width, image_height, "bla.txt");
 }
 
 
@@ -343,12 +318,63 @@ Game::Game() : Scene() {
 Game::Game(float angle, float relationWH, float near1, float far1) : Scene(angle, relationWH, near1, far1) {
 }
 
+glm::vec3 vec4_to_vec3(glm::vec4 v){
+    return glm::vec3(v.x, v.y, v.z);
+}
+
+void vec4_to_obj(glm::vec4 v, hittable_list *world, float transparency, float reflective, int color_index){
+    if (v.w > 0.0f) { // sphere
+        world->add(make_shared<sphere>(vec4_to_vec3(v), v.w, material(vec4_to_vec3(object_colors[color_index]), reflective, transparency, object_colors[color_index].w)));
+    } else { // plane
+        world->add(make_shared<plane>(vec4_to_vec3(v), v.w, material(vec4_to_vec3(object_colors[color_index]), reflective, transparency, object_colors[color_index].w)));
+    }
+}
+
+hittable_list* file_to_world(){
+    auto *world = new hittable_list();
+    int color_index = 0;
+    for (auto tuple : objects){
+        switch(std::get<1>(tuple)) {
+            case 'o':
+                vec4_to_obj(std::get<0>(tuple), world, 0.0f, 0.0f, color_index);
+                break;
+            case 'r':
+                vec4_to_obj(std::get<0>(tuple), world, 0.0f, 1.0f, color_index);
+                break;
+            case 't':
+                vec4_to_obj(std::get<0>(tuple), world, 1.0f, 0.0f, color_index);
+                break;
+        }
+        color_index ++;
+    }
+    return world;
+}
+
+light_list* file_to_lights(){
+    glm::vec4 AmbientLight = ambient_color[0];
+    auto *lights = new light_list(vec4_to_vec3(AmbientLight));
+    int spotLight_index = 0;
+    int intensity_index = 0;
+    for (glm::vec4 light : direct_lights) {
+        if (light.w == 1.0){ // spotlight
+            lights->add(make_shared<spotlight>(vec4_to_vec3(spotlights[spotLight_index]), vec4_to_vec3(light), std::acos(spotlights[spotLight_index].w),
+                        vec4_to_vec3(light_intensity[intensity_index])));
+            spotLight_index ++;
+        } else { //directional light
+            lights->add(make_shared<directional_light>(vec4_to_vec3(light), vec4_to_vec3(light_intensity[intensity_index])));
+        }
+        intensity_index ++;
+    }
+    return lights;
+}
+
 void Game::Init() {
     read_file();
-//    std::cout << spheres.size() << std::endl; //checking count of spheres = V
+//    std::cout << object.size() << std::endl; //checking count of object = V
     AddShader("../res/shaders/pickingShader");
     AddShader("../res/shaders/basicShader");
-    calc_color_data(2.0, 2.0, 256, 256, THREADS_PER_ROW);
+
+    calc_color_data(*file_to_lights(), *file_to_world(), 2.0, 2.0, 256, 256, THREADS_PER_ROW);
 
     AddShape(Plane, -1, TRIANGLES);
 

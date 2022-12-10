@@ -16,10 +16,12 @@ using std::make_shared;
 
 class light_list {
 public:
+    light_list(glm::vec3 ia) : Ia(ia){}
     void add(shared_ptr<light> light_source) { light_sources.push_back(light_source); }
     void clear() { light_sources.clear(); }
     glm::vec3 get_illumination(ray camera, hit_record start, hittable& world) const;
-private:
+public:
+    glm::vec3 Ia;
     std::vector<shared_ptr<light>> light_sources;
 };
 

@@ -1,6 +1,5 @@
+#include <iostream>
 #include "light_list.h"
-
-static glm::vec3 Ia = glm::vec3(.2f,.2f,.2f); // ambient
 
 glm::vec3 light_list::get_illumination(ray camera, hit_record start, hittable& world) const {
     hit_record rec;

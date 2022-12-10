@@ -9,16 +9,25 @@
 
 struct material{
     material()= default;;
-    explicit material(glm::vec3 color, float r, float transparency) {
-        base_color = color;
+    explicit material(glm::vec3 color, float r, float transparency, float shininess) {
+        base_color = color * 256.f;
         reflective = r;
         transperancy = transparency;
         Kd = 0.7f;
+        this->shininess = shininess;
     }
+//    explicit material(glm::vec3 color, float r, float transparency) {
+//        base_color = color;
+//        reflective = r;
+//        transperancy = transparency;
+//        Kd = 0.7f;
+//        this->shininess = 3.f;
+//    }
     float reflective;
     float transperancy;
     glm::vec3 base_color;
     float Kd;
+    float shininess;
 };
 
 struct hit_record {
