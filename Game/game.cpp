@@ -242,7 +242,7 @@ float color_clamp(float x){
     return  glm::clamp(x, 0.0f, 255.0f);
 }
 
-const int sample_per_pixel = 4;
+const int sample_per_pixel = 25;
 void Game::calc_color_data(light_list& lights, hittable_list& world, float viewport_width, float viewport_height, int image_width, int image_height, int threads_per_row) {
     auto*** color_mat = new float**[image_width]();
     for(int i = 0; i < image_width; i ++){
@@ -340,10 +340,10 @@ hittable_list* file_to_world(){
                 vec4_to_obj(std::get<0>(tuple), world, 0.0f, 0.0f, vec4_to_vec3(object_colors[color_index]), object_colors[color_index].w);
                 break;
             case 'r':
-                vec4_to_obj(std::get<0>(tuple), world, 0.0f, 1.0f, glm::vec3(0,0,0), object_colors[color_index].w);
+                vec4_to_obj(std::get<0>(tuple), world, 0.0f, 1.0f, glm::vec3(0.f,0.f,0.f), object_colors[color_index].w);
                 break;
             case 't':
-                vec4_to_obj(std::get<0>(tuple), world, 1.0f, 0.0f, vec4_to_vec3(object_colors[color_index]), object_colors[color_index].w);
+                vec4_to_obj(std::get<0>(tuple), world, 1.0f, 0.0f, glm::vec3(0.1f,0.1f,0.1f), object_colors[color_index].w);
                 break;
         }
         color_index ++;
