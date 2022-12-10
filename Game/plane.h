@@ -9,6 +9,7 @@
 #include "glm/vec4.hpp"
 #include "ray.h"
 #include "hittable.h"
+#include "glm/detail/func_geometric.hpp"
 
 class plane : public hittable {
 public:
@@ -16,7 +17,7 @@ public:
 
 //    plane(glm::vec4 eq) : equation(eq) {};
 
-    plane(glm::vec3 normal, float scalar, material m) : normal(normal), scalar(scalar) {
+    plane(glm::vec3 normal, float scalar, material m) :  normal(normal), scalar(scalar) {
         mat = std::move(m);
     };
 

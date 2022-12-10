@@ -16,7 +16,7 @@
 using namespace glm;
 #define color_size_bytes 4
 #define to_index(i, j) i * image_width * color_size_bytes + j * color_size_bytes
-#define MAX_DEPTH 3
+#define MAX_DEPTH 5
 #define THREADS_PER_ROW 2
 #define air_constant 1.0f
 #define material_constant 1.5f
@@ -85,7 +85,7 @@ std::vector<std::string> split(std::string s, std::string delimiter) {
 
 //reading specified file
 void read_file() {
-    std::ifstream in("../res/scene5.txt", std::ios::in);
+    std::ifstream in("../res/scene4.txt", std::ios::in);
 
     if (!in) {
         printf("\ncan't open input file\n");
@@ -191,15 +191,15 @@ inline float degrees_to_radians(float degrees) {
 
 ray calculate_reflected_ray(ray in_ray, glm::vec3 normal, glm::vec3 point){
     normal = glm::normalize(normal);
-    glm::vec3 dir = in_ray.dir - 2.0f * normal * (glm::dot(in_ray.dir, normal));
+    glm::vec3 dir = glm::normalize(in_ray.dir) - 2.0f * normal * (glm::dot(glm::normalize(in_ray.dir), normal));
     return ray(point + 0.005f * dir, dir);
 }
 
 ray get_snell_ray(ray ray_in, float ni, float nr, hit_record hr){
-    glm::vec3 L = ray_in.dir * (-1.0f);
-    float theta_i = glm::dot(L, hr.normal);
+    glm::vec3 L = glm::normalize(ray_in.dir) * (-1.0f);
+    float theta_i = glm::dot(L, glm::normalize(hr.normal));
     float theta_r = asin(glm::clamp((ni / nr) * sin(theta_i), -1.f, 1.f));
-    glm::vec3 Tvec = ((ni / nr) * cos(theta_i) - cos(theta_r)) * hr.normal - (ni / nr) * L;
+    glm::vec3 Tvec = ((ni / nr) * cos(theta_i) - cos(theta_r)) * glm::normalize(hr.normal) - (ni / nr) * L;
     Tvec = glm::normalize(Tvec);
     return ray(hr.point + Tvec, Tvec);
 }
@@ -235,13 +235,14 @@ glm::vec3 ray_color(const ray& r, const hittable& world, light_list& light_sourc
 
 float get_random(){
     return (float)rand() /(RAND_MAX + 1);
+//    return 0;
 }
 
 float color_clamp(float x){
     return  glm::clamp(x, 0.0f, 255.0f);
 }
 
-const int sample_per_pixel = 20;
+const int sample_per_pixel = 4;
 void Game::calc_color_data(light_list& lights, hittable_list& world, float viewport_width, float viewport_height, int image_width, int image_height, int threads_per_row) {
     auto*** color_mat = new float**[image_width]();
     for(int i = 0; i < image_width; i ++){
@@ -322,11 +323,11 @@ glm::vec3 vec4_to_vec3(glm::vec4 v){
     return glm::vec3(v.x, v.y, v.z);
 }
 
-void vec4_to_obj(glm::vec4 v, hittable_list *world, float transparency, float reflective, int color_index){
+void vec4_to_obj(glm::vec4 v, hittable_list *world, float transparency, float reflective, glm::vec3 color, float shiny){
     if (v.w > 0.0f) { // sphere
-        world->add(make_shared<sphere>(vec4_to_vec3(v), v.w, material(vec4_to_vec3(object_colors[color_index]), reflective, transparency, object_colors[color_index].w)));
+        world->add(make_shared<sphere>(vec4_to_vec3(v), v.w, material(color, reflective, transparency, shiny)));
     } else { // plane
-        world->add(make_shared<plane>(vec4_to_vec3(v), v.w, material(vec4_to_vec3(object_colors[color_index]), reflective, transparency, object_colors[color_index].w)));
+        world->add(make_shared<plane>(vec4_to_vec3(v), v.w, material(color, reflective, transparency, shiny)));
     }
 }
 
@@ -336,13 +337,13 @@ hittable_list* file_to_world(){
     for (auto tuple : objects){
         switch(std::get<1>(tuple)) {
             case 'o':
-                vec4_to_obj(std::get<0>(tuple), world, 0.0f, 0.0f, color_index);
+                vec4_to_obj(std::get<0>(tuple), world, 0.0f, 0.0f, vec4_to_vec3(object_colors[color_index]), object_colors[color_index].w);
                 break;
             case 'r':
-                vec4_to_obj(std::get<0>(tuple), world, 0.0f, 1.0f, color_index);
+                vec4_to_obj(std::get<0>(tuple), world, 0.0f, 1.0f, glm::vec3(0,0,0), object_colors[color_index].w);
                 break;
             case 't':
-                vec4_to_obj(std::get<0>(tuple), world, 1.0f, 0.0f, color_index);
+                vec4_to_obj(std::get<0>(tuple), world, 1.0f, 0.0f, vec4_to_vec3(object_colors[color_index]), object_colors[color_index].w);
                 break;
         }
         color_index ++;
@@ -373,7 +374,6 @@ void Game::Init() {
 //    std::cout << object.size() << std::endl; //checking count of object = V
     AddShader("../res/shaders/pickingShader");
     AddShader("../res/shaders/basicShader");
-
     calc_color_data(*file_to_lights(), *file_to_world(), 2.0, 2.0, 256, 256, THREADS_PER_ROW);
 
     AddShape(Plane, -1, TRIANGLES);

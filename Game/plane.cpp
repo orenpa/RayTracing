@@ -5,19 +5,19 @@
 #include "light.h"
 
 bool plane::hit(const ray &r, float t_min, float t_max, hit_record &rec) const {
-    float denom = glm::dot(normal, r.direction());
+    float denom = glm::dot(glm::normalize(normal), r.direction());
     if (abs(denom) > 0.000001f) {
-        float t = (-(glm::dot(r.origin(), normal) + scalar)) / denom;
+        float t = (-(glm::dot(r.origin(), glm::normalize(normal)) + scalar)) / denom;
         rec.t = t;
         rec.point = r.origin() + (t - 0.000001f) * r.direction();
-        rec.normal = normal * -1.0f;
+        rec.normal = glm::normalize(normal * -1.0f);
         rec.mat = mat;
         glm::vec3 projected_point = rec.point - (glm::dot(rec.normal, rec.point) * rec.normal);
-        if (((int)(std::floor(projected_point.x) + std::floor(projected_point.y)) % 2) == 0)
+        if (((int)(std::floor(projected_point.x * 1.5) + std::floor(projected_point.y * 1.5)) % 2) == 0)
             rec.mat.Kd = 0.5f;
         else
             rec.mat.Kd = Kd;
-        return t >= 0;
+        return t >= 0 && t <= t_max && t >= t_min;
     }
     return false;
 }

@@ -10,7 +10,7 @@ spotlight::spotlight(glm::vec3 origin, glm::vec3 dir, float cut_off_angle, glm::
 float spotlight::get_t(glm::vec3 point) const {
     glm::vec3 dir_to_point = point - r.origin();
     dir_to_point = glm::normalize(dir_to_point);
-    return (r.origin().x - point.x)/dir_to_point.x;
+    return std::abs((r.origin().x - point.x)/dir_to_point.x);
 }
 
 glm::vec3 spotlight::get_ray(glm::vec3 point) const {
